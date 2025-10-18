@@ -1,0 +1,4 @@
+flask
+kronoslabs
+python-dotenv
+flask-cors
