@@ -314,10 +314,12 @@ const UBloomApp = () => {
   const Navigation = () => (
     <nav className="bg-slate-950/90 backdrop-blur-xl border-b border-blue-800/30 px-6 py-4 flex justify-between items-center">
       <div className="flex items-center gap-4">
-        <Menu className="w-6 h-6 text-blue-400" />
-        <div className="text-xl font-bold text-blue-100 tracking-widest">
+        <button 
+          onClick={() => setCurrentScreen('dashboard')}
+          className="text-xl font-bold text-blue-100 tracking-widest hover:text-blue-300 transition-colors cursor-pointer"
+        >
           UBLOOM
-        </div>
+        </button>
         {isPremium ? (
           <span className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-900/40 border border-blue-700 text-blue-200">
             <Crown className="w-3 h-3" /> Premium
