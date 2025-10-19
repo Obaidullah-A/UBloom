@@ -1,8 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Home, BookOpen, Target, User, Users, Coins, Flame, Plus, X, Check,
-  Sparkles, Brain, Zap, Menu, Lock, Gift, Ticket, ShieldCheck, Crown
-  Sparkles, Brain, Zap, Menu, Lock, Gift, Ticket, ShieldCheck, Crown,  Mic,
+  Sparkles, Brain, Zap, ChevronRight, Menu, Lock, Gift, Ticket, ShieldCheck, Crown, Mic, MicOff
 } from 'lucide-react';
 
 /**
@@ -401,9 +400,10 @@ const analyzeJournal = async () => {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => setCurrentScreen('dashboard')}
-          className="text-xl font-bold text-blue-100 tracking-widest hover:text-blue-300 transition-colors cursor-pointer"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
         >
-          UBLOOM
+          <img src="/lotus.svg" alt="UBloom" className="w-8 h-8" />
+          <span className="text-xl font-bold text-blue-100 tracking-widest">UBLOOM</span>
         </button>
         {isPremium ? (
           <span className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-900/40 border border-blue-700 text-blue-200">
@@ -828,19 +828,7 @@ const analyzeJournal = async () => {
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
-              {/* NEW: S-T-T Button */}
-              <button
-                onClick={startSpeechToText}
-                disabled={isListening}
-                className={`px-8 py-4 rounded-xl font-bold border-2 transition-all tracking-widest flex items-center justify-center gap-2 ${
-                  isListening 
-                    ? 'bg-blue-800/50 text-blue-300 border-blue-700 animate-pulse cursor-not-allowed'
-                    : 'border-blue-700 text-blue-100 hover:bg-blue-900/30'
-                }`}
-              >
-                <Mic className="w-5 h-5" />
-                {isListening ? 'LISTENING...' : 'VOICE INPUT'}
-              </button>
+
               
               {/* ANALYZE Button (Moved to center/right for spacing) */}
               <button 
