@@ -1177,7 +1177,7 @@ const analyzeJournal = async () => {
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
             <div className="bg-slate-950/95 rounded-3xl max-w-2xl w-full p-8 border border-blue-800/30">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-blue-100">Your UBloom Reflection 💡</h2>
+                <h2 className="text-2xl font-bold text-blue-100">Your UBloom Reflection</h2>
                 <button onClick={() => setShowReflection(false)} className="text-slate-500 hover:text-blue-400"><X className="w-6 h-6" /></button>
               </div>
 
@@ -1196,7 +1196,7 @@ const analyzeJournal = async () => {
                     <button
                       onClick={() => { addGoal(reflection.growth_path.replace(/^Try setting a mini-goal:\s*/i, '')); setShowReflection(false); }}
                       className="mt-4 px-4 py-2 rounded-xl text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30">
-                      Set as Goal ✅
+                      Set as Goal
                     </button>
                   </div>
                   <div className="mb-2">
