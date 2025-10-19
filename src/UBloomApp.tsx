@@ -6,7 +6,7 @@ import {
 import Navigation from './components/Navigation';
 import Onboarding from './components/Onboarding';
 import Signup from './components/Signup';
-
+import Login from './components/Login';
 import AvatarSelect from './components/AvatarSelect';
 import Journal from './components/Journal';
 
@@ -35,7 +35,7 @@ const todayKey = () => new Date().toISOString().slice(0,10); // YYYY-MM-DD
 
 const UBloomApp = () => {
   // Routing
-  const [currentScreen, setCurrentScreen] = useState<'onboarding'|'signup'|'avatar-select'|'dashboard'|'journal'|'goals'|'games'|'friends'|'journal-history'>('onboarding');
+  const [currentScreen, setCurrentScreen] = useState<'onboarding'|'signup'|'login'|'avatar-select'|'dashboard'|'journal'|'goals'|'games'|'friends'|'journal-history'>('onboarding');
   const [onboardingStep, setOnboardingStep] = useState(0);
 
   // Profile
@@ -45,6 +45,7 @@ const UBloomApp = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [signupErrors, setSignupErrors] = useState<{[key: string]: string}>({});
+  const [loginErrors, setLoginErrors] = useState<{[key: string]: string}>({});
 
   const fontStyle = { fontFamily: "'Roboto', 'Segoe UI', sans-serif" };
   const headerFont = { fontFamily: "'Neuropol X Rg', sans-serif" };
@@ -252,6 +253,19 @@ const analyzeJournal = async () => {
     return errors;
   };
 
+  const validateLogin = () => {
+    const errors: {[key: string]: string} = {};
+    
+    if (!email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    if (!password.trim()) errors.password = 'Password is required';
+    
+    return errors;
+  };
+
 
 
   const handleSignup = async () => {
@@ -275,7 +289,6 @@ const analyzeJournal = async () => {
         const data = await response.json();
         
         if (response.ok) {
-          // Skip avatar selection and go straight to dashboard
           showToastMessage('Welcome to UBloom!', 'success');
           setCurrentScreen('dashboard');
         } else {
@@ -283,6 +296,36 @@ const analyzeJournal = async () => {
         }
       } catch (error) {
         showToastMessage('Connection error. Please try again.', 'error');
+      }
+    }
+  };
+
+  const handleLogin = async () => {
+    const errors = validateLogin();
+    setLoginErrors(errors);
+    
+    if (Object.keys(errors).length === 0) {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          setUsername(data.username);
+          setCoins(data.coins);
+          setStreak(data.streak);
+          showToastMessage('Welcome back!', 'success');
+          setCurrentScreen('dashboard');
+        } else {
+          setLoginErrors({ general: data.error || 'Login failed' });
+        }
+      } catch (error) {
+        setLoginErrors({ general: 'Connection error. Please try again.' });
       }
     }
   };
@@ -595,6 +638,22 @@ const analyzeJournal = async () => {
         setPassword={setPassword}
         signupErrors={signupErrors}
         handleSignup={handleSignup}
+        setCurrentScreen={setCurrentScreen}
+        fontStyle={fontStyle}
+        headerFont={headerFont}
+      />
+    );
+  }
+
+  if (currentScreen === 'login') {
+    return (
+      <Login
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        loginErrors={loginErrors}
+        handleLogin={handleLogin}
         setCurrentScreen={setCurrentScreen}
         fontStyle={fontStyle}
         headerFont={headerFont}
