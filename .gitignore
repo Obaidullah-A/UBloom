@@ -141,3 +141,4 @@ vite.config.ts.timestamp-*
 =======
 .env
 >>>>>>> 27931e0c529faf063ccc2774977cc935213e6040
+*.db

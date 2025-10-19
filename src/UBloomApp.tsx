@@ -6,6 +6,7 @@ import {
 import Navigation from './components/Navigation';
 import Onboarding from './components/Onboarding';
 import Signup from './components/Signup';
+
 import AvatarSelect from './components/AvatarSelect';
 import Journal from './components/Journal';
 
@@ -19,7 +20,7 @@ import Journal from './components/Journal';
  */
 
 type GoalStatus = 'active' | 'done' | 'skipped';
-type Goal = { id: number; text: string; status: GoalStatus; rewarded?: boolean; createdAt: string; completedAt?: string; skippedAt?: string; };
+type Goal = { id: number; text: string; status: GoalStatus; rewarded?: boolean; pointsAwarded?: boolean; createdAt: string; completedAt?: string; skippedAt?: string; };
 type Cosmetic = { id: number; name: string; icon: string; price: number };
 
 type AIReflection = {
@@ -39,10 +40,12 @@ const UBloomApp = () => {
 
   // Profile
   const [selectedAvatar, setSelectedAvatar] = useState<{id:number;emoji:string;name:string}|null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [signupErrors, setSignupErrors] = useState<{[key: string]: string}>({});
+
   const fontStyle = { fontFamily: "'Roboto', 'Segoe UI', sans-serif" };
   const headerFont = { fontFamily: "'Neuropol X Rg', sans-serif" };
 
@@ -90,6 +93,8 @@ const UBloomApp = () => {
 
   // Daily points toward mood bar (separate from coins)
   const [pointsToday, setPointsToday] = useState<number>(50);
+  const [goalsCompletedToday, setGoalsCompletedToday] = useState<number>(0);
+  const dailyGoalRewardLimit = 10;
   
   // Game modals
   const [showMoodMatcher, setShowMoodMatcher] = useState(false);
@@ -141,6 +146,28 @@ const UBloomApp = () => {
   const addCoins = (amt:number) => setCoins(c => c + amt);
   const addPointsToday = (amt:number) => setPointsToday(p => p + amt);
   const freeGoalLimit = 5;
+  
+  // Auto-save user progress
+  const saveProgress = async () => {
+    try {
+      await fetch('http://127.0.0.1:5000/api/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          coins,
+          streak,
+          pointsToday,
+          goalsCompletedToday,
+          journalCountToday,
+          lastActiveDate,
+          dailyJournalAwarded
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+    }
+  };
 
   // Streak bookkeeping
   const touchDaily = () => {
@@ -225,24 +252,67 @@ const analyzeJournal = async () => {
     return errors;
   };
 
-  const handleSignup = () => {
+
+
+  const handleSignup = async () => {
     const errors = validateSignup();
     setSignupErrors(errors);
     
     if (Object.keys(errors).length === 0) {
-      setCurrentScreen('avatar-select');
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            username,
+            email,
+            password,
+            avatar_id: selectedAvatar?.id || 1
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Skip avatar selection and go straight to dashboard
+          showToastMessage('Welcome to UBloom!', 'success');
+          setCurrentScreen('dashboard');
+        } else {
+          showToastMessage(data.error || 'Registration failed', 'error');
+        }
+      } catch (error) {
+        showToastMessage('Connection error. Please try again.', 'error');
+      }
     }
   };
 
+
+
   // SAVE (awards +10 once/day, increments pointsToday)
-  const handleSaveJournal = () => {
+  const handleSaveJournal = async () => {
     const today = todayKey();
     if (!isPremium && journalCountToday >= 1) {
       showToastMessage('Free tier: 1 journal/day. Upgrade to Premium for unlimited journals.', 'error');
       return;
     }
     
-    // Save to history
+    // Save to database
+    try {
+      await fetch('http://127.0.0.1:5000/api/save-journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          text: journalText,
+          reflection: reflection
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save journal:', error);
+    }
+    
+    // Save to local history
     setJournalHistory(prev => [{
       date: today,
       text: journalText,
@@ -310,14 +380,22 @@ const analyzeJournal = async () => {
   const markDone = (goal: Goal) => {
     setGoals(prev => prev.map(g => {
       if (g.id !== goal.id) return g;
-      // Reward +20 only once when moving to done the first time
+      // Reward +10 only once when moving to done the first time, with daily limit
       const alreadyRewarded = g.rewarded === true;
-      if (!alreadyRewarded) { 
-        addCoins(20); 
-        addPointsToday(20);
-        showToastMessage('🎉 Goal completed! +20 coins earned', 'success');
+      let pointsAwarded = g.pointsAwarded || false;
+      
+      if (!alreadyRewarded) {
+        if (goalsCompletedToday < dailyGoalRewardLimit) {
+          addCoins(5); 
+          addPointsToday(5);
+          setGoalsCompletedToday(c => c + 1);
+          pointsAwarded = true;
+          showToastMessage('🎉 Goal completed! +5 coins earned', 'success');
+        } else {
+          showToastMessage('🎉 Goal completed! (Daily reward limit reached)', 'success');
+        }
       }
-      return { ...g, status: 'done', rewarded: true, completedAt: new Date().toISOString() };
+      return { ...g, status: 'done', rewarded: true, pointsAwarded, completedAt: new Date().toISOString() };
     }));
   };
   const handleSkipClick = (goal: Goal) => {
@@ -388,6 +466,7 @@ const analyzeJournal = async () => {
       if (todayKey() !== (dailyJournalAwarded ?? '').slice(0,10)) {
         setPointsToday(0);
         setJournalCountToday(0);
+        setGoalsCompletedToday(0);
       }
     }, 60000);
     return () => clearInterval(id);
@@ -410,6 +489,38 @@ const analyzeJournal = async () => {
       setJournalText(draft);
     }
   }, []);
+
+  // Load user avatar on mount
+  useEffect(() => {
+    fetch('http://127.0.0.1:5000/api/user/me')
+      .then(res => res.json())
+      .then(data => setUserAvatar(data.avatar_url))
+      .catch(err => console.log('Avatar load failed:', err));
+  }, []);
+
+  const handleAvatarSelect = async (avatarUrl: string) => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/user/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: avatarUrl })
+      });
+      
+      if (response.ok) {
+        setUserAvatar(avatarUrl);
+        setCurrentScreen('dashboard');
+        showToastMessage('Avatar updated!', 'success');
+      }
+    } catch (error) {
+      showToastMessage('Failed to save avatar', 'error');
+    }
+  };
+
+  // Auto-save progress periodically
+  useEffect(() => {
+    const interval = setInterval(saveProgress, 30000); // Save every 30 seconds
+    return () => clearInterval(interval);
+  }, [coins, streak, pointsToday, goalsCompletedToday, journalCountToday, lastActiveDate, dailyJournalAwarded]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -484,11 +595,14 @@ const analyzeJournal = async () => {
         setPassword={setPassword}
         signupErrors={signupErrors}
         handleSignup={handleSignup}
+        setCurrentScreen={setCurrentScreen}
         fontStyle={fontStyle}
         headerFont={headerFont}
       />
     );
   }
+
+
 
   if (currentScreen === 'avatar-select') {
     return (
@@ -500,6 +614,7 @@ const analyzeJournal = async () => {
         isPremium={isPremium}
         fontStyle={fontStyle}
         headerFont={headerFont}
+        handleAvatarSelect={handleAvatarSelect}
       />
     );
   }
@@ -523,6 +638,27 @@ const analyzeJournal = async () => {
                 <p className="text-blue-100 font-bold text-lg tracking-wider">{username}</p>
               </div>
             )}
+
+            {/* Avatar */}
+            <div className="text-center mb-6">
+              {userAvatar ? (
+                <img
+                  src={`${userAvatar}?scene=fullbody&quality=medium`}
+                  alt="User Avatar"
+                  className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4"
+                />
+              ) : (
+                <div className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4 bg-slate-800 flex items-center justify-center text-4xl">
+                  🌸
+                </div>
+              )}
+              <button 
+                onClick={() => setCurrentScreen('avatar-select')}
+                className="text-blue-400 hover:text-blue-300 text-sm"
+              >
+                {userAvatar ? 'Change Avatar' : 'Create Avatar'}
+              </button>
+            </div>
 
             {/* Streak Counter */}
             <div className="text-center mb-6">
@@ -621,7 +757,7 @@ const analyzeJournal = async () => {
                         <button onClick={() => handleSkipClick(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
                       </>
                     )}
-                    {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
+                    {goal.status==='done' && goal.pointsAwarded && <span className="text-xs text-blue-400 font-bold">+5</span>}
                   </div>
                 ))}
               </div>

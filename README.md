@@ -41,6 +41,11 @@ This project requires **two separate servers** running concurrently: a **Python 
     ```bash
     pip install flask kronoslabs python-dotenv flask-cors
     ```
+    
+    **Or install from requirements.txt:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 4.  **Set API Key:** Create a file named **`.env`** in the root directory and add your key:
     ```
     # .env
