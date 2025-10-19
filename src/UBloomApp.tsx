@@ -134,26 +134,43 @@ const UBloomApp = () => {
   };
 
   // ANALYZE -> call Flask
-  const analyzeJournal = async () => {
-    setAiError(null);
-    setAiLoading(true);
-    try {
-      const res = await fetch('/api/reflect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ journal_text: journalText ?? '' })
-      });
+const analyzeJournal = async () => {
+  setAiError(null);
+  setAiLoading(true);
+  
+  // *** CRITICAL CHANGE: Use the full URL for the Python backend ***
+  const FULL_API_URL = 'http://127.0.0.1:5000/api/reflect'; 
+
+  try {
+    const res = await fetch(FULL_API_URL, { // Use the full URL here
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ journal_text: journalText ?? '' })
+    });
+    
+    // Check for HTTP errors (4xx, 5xx)
+    if (!res.ok) {
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Analyze failed');
-      setReflection(data as AIReflection);
-      setShowReflection(true);
-    } catch (e:any) {
-      setAiError(e.message || 'Analyze failed');
-      setShowReflection(true); // still open with fallback/error messaging
-    } finally {
-      setAiLoading(false);
+      throw new Error(data?.error || `HTTP Error: ${res.status}`);
     }
-  };
+
+    const data = await res.json();
+    
+    // Check if the JSON data looks like a structured reflection
+    if (!data.insight || !data.growth_path) {
+        throw new Error("AI returned invalid structure. Check Python server logs.");
+    }
+    
+    setReflection(data as AIReflection);
+    setShowReflection(true);
+  } catch (e:any) {
+    // If the Python server is down, the catch block handles the error message
+    setAiError(e.message || 'Connection failed. Is the Python server running on port 5000?');
+    setShowReflection(true); 
+  } finally {
+    setAiLoading(false);
+  }
+};
 
   // Toast notification system
   const showToastMessage = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -657,44 +674,7 @@ const UBloomApp = () => {
           </div>
         )}
 
-        {/* Reflection Modal (after ANALYZE) */}
-        {showReflection && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-            <div className="bg-slate-950/95 rounded-3xl max-w-2xl w-full p-8 border border-blue-800/30">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-blue-100">Your UBloom Reflection 💡</h2>
-                <button onClick={() => setShowReflection(false)} className="text-slate-500 hover:text-blue-400"><X className="w-6 h-6" /></button>
-              </div>
 
-              {aiLoading && <p className="text-slate-400">Analyzing…</p>}
-              {aiError && <p className="text-amber-300 text-sm mb-4">Note: {aiError}</p>}
-
-              {reflection ? (
-                <>
-                  <div className="mb-6">
-                    <h3 className="text-blue-100 font-semibold mb-2">Insight</h3>
-                    <p className="text-slate-300">{reflection.insight}</p>
-                  </div>
-                  <div className="mb-6">
-                    <h3 className="text-blue-100 font-semibold mb-2">Growth Path</h3>
-                    <p className="text-slate-300">{reflection.growth_path}</p>
-                    <button
-                      onClick={() => { addGoal(reflection.growth_path.replace(/^Try setting a mini-goal:\s*/i, '')); setShowReflection(false); }}
-                      className="mt-4 px-4 py-2 rounded-xl text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30">
-                      Set as Goal ✅
-                    </button>
-                  </div>
-                  <div className="mb-2">
-                    <h3 className="text-blue-100 font-semibold mb-2">Reflect Further</h3>
-                    <p className="text-slate-300 italic">{reflection.reflection_prompt}</p>
-                  </div>
-                </>
-              ) : (
-                !aiLoading && <p className="text-slate-400">No reflection available.</p>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -771,6 +751,45 @@ const UBloomApp = () => {
             </div>
           </div>
         </div>
+
+        {/* Reflection Modal (after ANALYZE) */}
+        {showReflection && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+            <div className="bg-slate-950/95 rounded-3xl max-w-2xl w-full p-8 border border-blue-800/30">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-blue-100">Your UBloom Reflection</h2>
+                <button onClick={() => setShowReflection(false)} className="text-slate-500 hover:text-blue-400"><X className="w-6 h-6" /></button>
+              </div>
+
+              {aiLoading && <p className="text-slate-400">Analyzing…</p>}
+              {aiError && <p className="text-amber-300 text-sm mb-4">Note: {aiError}</p>}
+
+              {reflection ? (
+                <>
+                  <div className="mb-6">
+                    <h3 className="text-blue-100 font-semibold mb-2">Insight</h3>
+                    <p className="text-slate-300">{reflection.insight}</p>
+                  </div>
+                  <div className="mb-6">
+                    <h3 className="text-blue-100 font-semibold mb-2">Growth Path</h3>
+                    <p className="text-slate-300">{reflection.growth_path}</p>
+                    <button
+                      onClick={() => { addGoal(reflection.growth_path.replace(/^Try setting a mini-goal:\s*/i, '')); setShowReflection(false); }}
+                      className="mt-4 px-4 py-2 rounded-xl text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30">
+                      Set as Goal
+                    </button>
+                  </div>
+                  <div className="mb-2">
+                    <h3 className="text-blue-100 font-semibold mb-2">Reflect Further</h3>
+                    <p className="text-slate-300 italic">{reflection.reflection_prompt}</p>
+                  </div>
+                </>
+              ) : (
+                !aiLoading && <p className="text-slate-400">No reflection available.</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
