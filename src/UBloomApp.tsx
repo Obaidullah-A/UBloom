@@ -196,30 +196,17 @@ const UBloomApp = () => {
     if (!isPremium) {
       const activeCount = goals.filter(g => g.status === 'active').length;
       if (activeCount >= freeGoalLimit) {
-<<<<<<< HEAD
         setShowGoalLimitModal(true);
-=======
-        showToastMessage(`Free tier: up to ${freeGoalLimit} active goals. Upgrade to Premium for unlimited goals.`, 'error');
->>>>>>> 16e8a2462a494c4452a714030ae64fa0f46bcc31
         return;
       }
     }
     const text = textFromAI ?? newGoalText;
     if (!text.trim()) return;
     setGoals(prev => [{ id: Date.now(), text: text.trim(), status: 'active', createdAt: new Date().toISOString() }, ...prev]);
-<<<<<<< HEAD
     setNewGoalText('');
     setShowGoalInput(false);
     // Tiny toast UX
     if (textFromAI) alert('✨ Mini-goal added to your Active Goals!');
-=======
-    
-    if (textFromAI) {
-      showToastMessage('✨ Mini-goal added to your Active Goals!', 'success');
-    } else {
-      showToastMessage('Goal added successfully!', 'success');
-    }
->>>>>>> 16e8a2462a494c4452a714030ae64fa0f46bcc31
   };
 
   const handlePlusClick = () => {
@@ -362,87 +349,12 @@ const UBloomApp = () => {
         <div className="text-sm text-blue-200 flex items-center gap-1" title="Your current coin balance">
           <Coins className="w-4 h-4" /> {coins}
         </div>
-<<<<<<< HEAD
         <button onClick={() => { setCurrentScreen('dashboard'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='dashboard'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Home className="w-5 h-5" /></button>
         <button onClick={() => { setCurrentScreen('journal'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='journal'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><BookOpen className="w-5 h-5" /></button>
         <button onClick={() => { setCurrentScreen('goals'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='goals'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Target className="w-5 h-5" /></button>
         <button onClick={() => { setCurrentScreen('games'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='games'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Zap className="w-5 h-5" /></button>
         <button onClick={() => { setCurrentScreen('friends'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='friends'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Users className="w-5 h-5" /></button>
         <button onClick={() => { setCurrentScreen('dashboard'); setShowPremium(true); }} className="p-3 rounded-lg text-slate-500 hover:text-blue-400" aria-label="Premium"><Sparkles className="w-5 h-5" /></button>
-=======
-        
-        <div className="relative group">
-          <button 
-            onClick={() => setCurrentScreen('dashboard')} 
-            className={`p-3 rounded-lg transition-all ${currentScreen==='dashboard'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
-          >
-            <Home className="w-5 h-5" />
-          </button>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-            Dashboard
-          </div>
-        </div>
-        
-        <div className="relative group">
-          <button 
-            onClick={() => setCurrentScreen('journal')} 
-            className={`p-3 rounded-lg transition-all ${currentScreen==='journal'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
-          >
-            <BookOpen className="w-5 h-5" />
-          </button>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-            Journal & AI Analysis
-          </div>
-        </div>
-        
-        <div className="relative group">
-          <button 
-            onClick={() => setCurrentScreen('goals')} 
-            className={`p-3 rounded-lg transition-all ${currentScreen==='goals'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
-          >
-            <Target className="w-5 h-5" />
-          </button>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-            Goals & Progress
-          </div>
-        </div>
-        
-        <div className="relative group">
-          <button 
-            onClick={() => setCurrentScreen('games')} 
-            className={`p-3 rounded-lg transition-all ${currentScreen==='games'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
-          >
-            <Zap className="w-5 h-5" />
-          </button>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-            Mindfulness Games
-          </div>
-        </div>
-        
-        <div className="relative group">
-          <button 
-            onClick={() => setCurrentScreen('friends')} 
-            className={`p-3 rounded-lg transition-all ${currentScreen==='friends'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
-          >
-            <Users className="w-5 h-5" />
-          </button>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-            Social & Friends
-          </div>
-        </div>
-        
-        <div className="relative group">
-          <button 
-            onClick={() => setShowPremium(true)} 
-            className="p-3 rounded-lg text-slate-500 hover:text-blue-400 transition-all"
-          >
-            <Sparkles className="w-5 h-5" />
-          </button>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-            Upgrade to Premium
-          </div>
-        </div>
->>>>>>> 16e8a2462a494c4452a714030ae64fa0f46bcc31
       </div>
     </nav>
   );
