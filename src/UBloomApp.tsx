@@ -40,6 +40,7 @@ const UBloomApp = () => {
 
   // Profile
   const [selectedAvatar, setSelectedAvatar] = useState<{id:number;emoji:string;name:string}|null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -519,6 +520,32 @@ const analyzeJournal = async () => {
     }
   }, []);
 
+  // Load user avatar on mount
+  useEffect(() => {
+    fetch('http://127.0.0.1:5000/api/user/me')
+      .then(res => res.json())
+      .then(data => setUserAvatar(data.avatar_url))
+      .catch(err => console.log('Avatar load failed:', err));
+  }, []);
+
+  const handleAvatarSelect = async (avatarUrl: string) => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/user/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: avatarUrl })
+      });
+      
+      if (response.ok) {
+        setUserAvatar(avatarUrl);
+        setCurrentScreen('dashboard');
+        showToastMessage('Avatar updated!', 'success');
+      }
+    } catch (error) {
+      showToastMessage('Failed to save avatar', 'error');
+    }
+  };
+
   // Auto-save progress periodically
   useEffect(() => {
     const interval = setInterval(saveProgress, 30000); // Save every 30 seconds
@@ -631,6 +658,7 @@ const analyzeJournal = async () => {
         isPremium={isPremium}
         fontStyle={fontStyle}
         headerFont={headerFont}
+        handleAvatarSelect={handleAvatarSelect}
       />
     );
   }
@@ -654,6 +682,27 @@ const analyzeJournal = async () => {
                 <p className="text-blue-100 font-bold text-lg tracking-wider">{username}</p>
               </div>
             )}
+
+            {/* Avatar */}
+            <div className="text-center mb-6">
+              {userAvatar ? (
+                <img
+                  src={`${userAvatar}?scene=fullbody&quality=medium`}
+                  alt="User Avatar"
+                  className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4"
+                />
+              ) : (
+                <div className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4 bg-slate-800 flex items-center justify-center text-4xl">
+                  🌸
+                </div>
+              )}
+              <button 
+                onClick={() => setCurrentScreen('avatar-select')}
+                className="text-blue-400 hover:text-blue-300 text-sm"
+              >
+                {userAvatar ? 'Change Avatar' : 'Create Avatar'}
+              </button>
+            </div>
 
             {/* Streak Counter */}
             <div className="text-center mb-6">

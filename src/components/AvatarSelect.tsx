@@ -16,6 +16,7 @@ interface AvatarSelectProps {
   isPremium: boolean;
   fontStyle: React.CSSProperties;
   headerFont: React.CSSProperties;
+  handleAvatarSelect?: (avatarUrl: string) => void;
 }
 
 const AvatarSelect: React.FC<AvatarSelectProps> = ({
@@ -25,11 +26,34 @@ const AvatarSelect: React.FC<AvatarSelectProps> = ({
   setCurrentScreen,
   isPremium,
   fontStyle,
-  headerFont
+  headerFont,
+  handleAvatarSelect
 }) => (
   <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
-    <div className="max-w-2xl w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-800/30">
-      <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest" style={headerFont}>CHOOSE AN AVATAR</h1>
+    <div className="max-w-4xl w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-800/30">
+      <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest" style={headerFont}>CREATE YOUR AVATAR</h1>
+      
+      <div className="mb-6">
+        <iframe
+          src="https://ubloom.readyplayer.me/avatar?frameApi"
+          className="w-full h-[600px] border-none rounded-2xl"
+          allow="camera *; microphone *"
+          onLoad={(e) => {
+            const iframe = e.target as HTMLIFrameElement;
+            window.addEventListener('message', (event) => {
+              if (event.data?.source === 'readyplayerme') {
+                if (event.data.eventName === 'v1.avatar.exported') {
+                  console.log('Avatar URL:', event.data.url);
+                  if (handleAvatarSelect) {
+                    handleAvatarSelect(event.data.url);
+                  }
+                }
+              }
+            });
+          }}
+        />
+      </div>
+      
       <div className="grid grid-cols-3 gap-4 mb-10">
         {avatars.map((a) => {
           const locked = !isPremium && a.id > 3;
