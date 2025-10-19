@@ -96,6 +96,9 @@ const UBloomApp = () => {
   const [showMoodMatcher, setShowMoodMatcher] = useState(false);
   const [showFocusQuest, setShowFocusQuest] = useState(false);
   
+  // Game history
+  const [gameHistory, setGameHistory] = useState<{id: number, game: string, score: number, date: string, duration: number}[]>([]);
+  
   // Progress tracking
   const [emotionHistory, setEmotionHistory] = useState<{date: string, emotion: string, score: number}[]>([
     {date: '2024-01-01', emotion: 'Happy', score: 8},
@@ -736,13 +739,35 @@ const analyzeJournal = async () => {
           <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest" style={headerFont}>CHOOSE AN AVATAR</h1>
           <div className="grid grid-cols-3 gap-4 mb-10">
             {avatars.map((a) => {
-              const locked = !isPremium && a.id > 3;
+              const isFree = a.id <= 3;
+              const isCoinPurchase = a.id > 3 && a.id <= 6;
+              const isPremiumOnly = a.id > 6;
+              const coinPrice = 50;
+              const canAfford = coins >= coinPrice;
+              const isOwned = isFree || isPremium || (isCoinPurchase && selectedAvatar?.id === a.id);
+              
               return (
-                <button key={a.id} onClick={() => !locked && setSelectedAvatar(a)}
-                        className={`relative bg-slate-900/50 p-6 rounded-2xl border-2 transition-all duration-300 hover:border-blue-500 ${selectedAvatar?.id===a.id?'border-blue-500 bg-blue-900/20':'border-blue-800/30'} ${locked?'opacity-50 cursor-not-allowed':''}`}
-                        title={locked ? 'Premium required' : ''}>
+                <button key={a.id} 
+                        onClick={() => {
+                          if (isFree) {
+                            setSelectedAvatar(a);
+                          } else if (isCoinPurchase && canAfford) {
+                            purchaseAvatar(a, coinPrice);
+                          } else if (isPremiumOnly && isPremium) {
+                            setSelectedAvatar(a);
+                          }
+                        }}
+                        className={`relative bg-slate-900/50 p-6 rounded-2xl border-2 transition-all duration-300 hover:border-blue-500 ${selectedAvatar?.id===a.id?'border-blue-500 bg-blue-900/20':'border-blue-800/30'} ${(!isOwned && !canAfford)?'opacity-50 cursor-not-allowed':''}`}>
                   <div className="text-5xl mb-3 text-center">{a.emoji}</div>
-                  {locked && <div className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300">Premium</div>}
+                  {isCoinPurchase && !isPremium && selectedAvatar?.id !== a.id && (
+                    <div className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300">{coinPrice} coins</div>
+                  )}
+                  {isPremiumOnly && !isPremium && (
+                    <div className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300">Premium</div>
+                  )}
+                  {isFree && (
+                    <div className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded bg-blue-900/50 border border-blue-700 text-blue-200">Free</div>
+                  )}
                 </button>
               );
             })}
@@ -791,12 +816,6 @@ const analyzeJournal = async () => {
               <div className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4 bg-slate-800 flex items-center justify-center text-6xl">
                 {selectedAvatar ? selectedAvatar.emoji : '🌸'}
               </div>
-              <button 
-                onClick={() => setCurrentScreen('avatar-select')}
-                className="text-blue-400 hover:text-blue-300 text-sm"
-              >
-                Change Avatar
-              </button>
             </div>
 
             {/* Streak Counter */}
@@ -831,6 +850,26 @@ const analyzeJournal = async () => {
                   </div>
                 ))}
               </div>
+              
+              {/* AI Mood Prediction */}
+              {(() => {
+                const avgScore = emotionHistory.slice(-7).reduce((sum, e) => sum + e.score, 0) / 7;
+                const trend = emotionHistory.slice(-3).reduce((sum, e) => sum + e.score, 0) / 3;
+                const prediction = trend < avgScore - 1 ? 'low' : trend > avgScore + 1 ? 'high' : 'stable';
+                
+                if (prediction === 'low') {
+                  return (
+                    <div className="mt-3 p-3 rounded-lg bg-amber-900/20 border border-amber-700/30">
+                      <div className="flex items-center gap-2 text-amber-200 text-xs">
+                        <span>🔮</span>
+                        <span className="font-medium">AI Prediction:</span>
+                        <span>You might feel low tomorrow. Consider scheduling self-care.</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Growth Categories */}
@@ -851,7 +890,7 @@ const analyzeJournal = async () => {
             </div>
 
             <button onClick={() => setShowShop(true)} className="w-full py-3 rounded-xl text-blue-100 font-bold border-2 border-blue-700 hover:bg-blue-900/30 transition-all tracking-widest">
-              CUSTOMIZE
+              MARKETPLACE
             </button>
           </div>
 
@@ -901,6 +940,38 @@ const analyzeJournal = async () => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Game History */}
+            <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-8 border border-blue-800/30">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-blue-100 tracking-widest" style={headerFont}>GAME HISTORY</h3>
+                <div className="text-xs text-slate-500">{gameHistory.length} sessions</div>
+              </div>
+              {gameHistory.length > 0 ? (
+                <div className="space-y-3">
+                  {gameHistory.slice(0, 3).map(game => (
+                    <div key={game.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-900/30 border border-slate-800">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{game.game === 'Focus Quest' ? '🎯' : '🎭'}</span>
+                        <div>
+                          <div className="text-slate-300 text-sm font-medium">{game.game}</div>
+                          <div className="text-slate-500 text-xs">{game.date}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-blue-400 font-bold text-sm">{game.score} pts</div>
+                        <div className="text-slate-500 text-xs">{game.duration}s</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-slate-900/30 p-8 rounded-2xl border-2 border-dashed border-slate-800 text-center">
+                  <Zap className="w-10 h-10 text-slate-700 mx-auto mb-3" />
+                  <p className="text-slate-600">No games played yet</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1436,7 +1507,17 @@ const analyzeJournal = async () => {
             <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-2xl w-full h-[600px] border border-blue-800/30 relative overflow-hidden">
               <div className="flex justify-between items-center p-6 border-b border-blue-800/30">
                 <h2 className="text-xl font-bold text-blue-100 tracking-widest">🎭 MOOD MATCHER</h2>
-                <button onClick={() => setShowMoodMatcher(false)} className="text-slate-500 hover:text-blue-400">
+                <button onClick={() => {
+                  setShowMoodMatcher(false);
+                  const newGame = {
+                    id: Date.now(),
+                    game: 'Mood Matcher',
+                    score: Math.floor(Math.random() * 100) + 50,
+                    date: new Date().toLocaleDateString(),
+                    duration: Math.floor(Math.random() * 300) + 60
+                  };
+                  setGameHistory(prev => [newGame, ...prev]);
+                }} className="text-slate-500 hover:text-blue-400">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -1458,7 +1539,17 @@ const analyzeJournal = async () => {
             <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-4xl w-full h-[600px] border border-blue-800/30 relative overflow-hidden">
               <div className="flex justify-between items-center p-6 border-b border-blue-800/30">
                 <h2 className="text-xl font-bold text-blue-100 tracking-widest">🎯 FOCUS QUEST</h2>
-                <button onClick={() => setShowFocusQuest(false)} className="text-slate-500 hover:text-blue-400">
+                <button onClick={() => {
+                  setShowFocusQuest(false);
+                  const newGame = {
+                    id: Date.now(),
+                    game: 'Focus Quest',
+                    score: Math.floor(Math.random() * 200) + 100,
+                    date: new Date().toLocaleDateString(),
+                    duration: Math.floor(Math.random() * 400) + 120
+                  };
+                  setGameHistory(prev => [newGame, ...prev]);
+                }} className="text-slate-500 hover:text-blue-400">
                   <X className="w-6 h-6" />
                 </button>
               </div>
