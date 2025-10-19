@@ -913,15 +913,15 @@ const analyzeJournal = async () => {
                       const owned = isPremium || ownedCosmetics.includes(item.id) || freeCosmeticIds.includes(item.id);
                       const freeTag = freeCosmeticIds.includes(item.id) && !isPremium;
                       return (
-                        <div key={item.id} className="bg-slate-900/50 p-4 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all text-center">
+                        <div key={item.id} className="bg-slate-900/50 p-4 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all text-center h-full flex flex-col">
                           <div className="text-3xl mb-2">{item.icon}</div>
                           <div className="text-slate-300 text-xs mb-2">{item.name}</div>
-                          <div className="h-6 mb-2">
+                          <div className="h-6 mb-2 flex items-center justify-center">
                             {freeTag && <span className="text-[10px] px-2 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300">Free</span>}
                             {isPremium && <span className="text-[10px] px-2 py-1 rounded bg-blue-900/50 border border-blue-700 text-blue-200">Unlocked</span>}
                           </div>
                           <button onClick={() => purchaseCosmetic(item)} disabled={owned || isPremium || coins < item.price}
-                                  className={`w-full py-2 rounded-lg text-xs font-bold tracking-wider ${owned||isPremium?'bg-slate-800/50 text-slate-500 cursor-not-allowed':'border border-blue-700 text-blue-100 hover:bg-blue-900/30'}`}>
+                                  className={`w-full py-2 rounded-lg text-xs font-bold tracking-wider mt-auto ${owned||isPremium?'bg-slate-800/50 text-slate-500 cursor-not-allowed':'border border-blue-700 text-blue-100 hover:bg-blue-900/30'}`}>
                             {owned || isPremium ? 'Owned' : item.price}
                           </button>
                         </div>
