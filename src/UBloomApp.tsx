@@ -739,7 +739,15 @@ const analyzeJournal = async () => {
           >
             CREATE ACCOUNT
           </button>
-          <p className="text-center text-slate-600 text-sm">Forgot your password?</p>
+          <div className="text-center">
+            <p className="text-slate-600 text-sm mb-4">Already have an account?</p>
+            <button 
+              onClick={() => setCurrentScreen('login')}
+              className="text-blue-400 hover:text-blue-300 text-sm tracking-wider"
+            >
+              Sign In
+            </button>
+          </div>
           <div className="flex justify-center gap-2 mt-6"><div className="w-2 h-2 rounded-full bg-blue-500"></div><div className="w-2 h-2 rounded-full bg-slate-700"></div></div>
         </div>
       </div>
