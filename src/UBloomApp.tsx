@@ -1,8 +1,13 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Home, BookOpen, Target, User, Users, Coins, Flame, Plus, X, Check,
-  Sparkles, Brain, Zap, Menu, Lock, Gift, Ticket, ShieldCheck, Crown
+  Sparkles, Brain, Zap, ChevronRight, Menu, Lock, Gift, Ticket, ShieldCheck, Crown, Mic, MicOff
 } from 'lucide-react';
+import Navigation from './components/Navigation';
+import Onboarding from './components/Onboarding';
+import Signup from './components/Signup';
+import AvatarSelect from './components/AvatarSelect';
+import Journal from './components/Journal';
 
 /**
  * UBloomApp
@@ -38,8 +43,8 @@ const UBloomApp = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [signupErrors, setSignupErrors] = useState<{[key: string]: string}>({});
-  const fontStyle = { fontFamily: "'Neuropol X Rg', sans-serif" };
-  const readableFont = { fontFamily: "'Roboto', 'Segoe UI', sans-serif" };
+  const fontStyle = { fontFamily: "'Roboto', 'Segoe UI', sans-serif" };
+  const headerFont = { fontFamily: "'Neuropol X Rg', sans-serif" };
 
   // Journal + AI
   const [journalText, setJournalText] = useState('');
@@ -403,9 +408,10 @@ const analyzeJournal = async () => {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => setCurrentScreen('dashboard')}
-          className="text-xl font-bold text-blue-100 tracking-widest hover:text-blue-300 transition-colors cursor-pointer"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
         >
-          UBLOOM
+          <img src="/lotus.svg" alt="UBloom" className="w-8 h-8" />
+          <span className="text-xl font-bold text-blue-100 tracking-widest" style={headerFont}>UBLOOM</span>
         </button>
         {isPremium ? (
           <span className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-900/40 border border-blue-700 text-blue-200">
@@ -427,121 +433,46 @@ const analyzeJournal = async () => {
     </nav>
   );
 
-  // ----- Screens (onboarding/signup/avatar kept same style—titles updated to UBLOOM) -----
-  const onboardingScreens = [
-    { title: 'UBLOOM', description: 'Your AI-powered emotional wellness companion',
-      icon: (<svg className="w-32 h-32 mx-auto mb-8" viewBox="0 0 100 100" fill="none"><path d="M50 20 L35 35 L50 50 L65 35 Z" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M35 35 L35 65 L50 80" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M65 35 L65 65 L50 80" stroke="#60a5fa" strokeWidth="2" fill="none"/></svg>) },
-    { title: 'Track Your Growth', description: 'Visualize emotional progress with AI insights',
-      icon: (<svg className="w-40 h-40 mx-auto mb-8" viewBox="0 0 200 200" fill="none"><circle cx="100" cy="60" r="30" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M100 90 L100 140" stroke="#60a5fa" strokeWidth="2"/><circle cx="70" cy="120" r="6" fill="#60a5fa"/><circle cx="100" cy="100" r="6" fill="#60a5fa"/><circle cx="130" cy="120" r="6" fill="#60a5fa"/><circle cx="85" cy="140" r="6" fill="#60a5fa"/><circle cx="115" cy="140" r="6" fill="#60a5fa"/></svg>) },
-    { title: 'Build Your Future', description: 'Set goals, earn rewards, evolve your avatar',
-      icon: (<svg className="w-40 h-40 mx-auto mb-8" viewBox="0 0 200 200" fill="none"><circle cx="100" cy="70" r="25" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M100 95 L100 130" stroke="#60a5fa" strokeWidth="2"/><path d="M75 110 L100 130 L125 110" stroke="#60a5fa" strokeWidth="2" fill="none"/><circle cx="70" cy="100" r="4" fill="#60a5fa"/><circle cx="130" cy="100" r="4" fill="#60a5fa"/><circle cx="85" cy="130" r="4" fill="#60a5fa"/><circle cx="115" cy="130" r="4" fill="#60a5fa"/></svg>) }
-  ] as const;
-
   if (currentScreen === 'onboarding') {
-    const s = onboardingScreens[onboardingStep];
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
-        <div className="max-w-md w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-12 text-center border border-blue-800/30">
-          {s.icon}
-          <h1 className="text-4xl font-bold mb-4 text-blue-100 tracking-widest">{s.title}</h1>
-          <p className="text-slate-400 text-lg mb-12 leading-relaxed">{s.description}</p>
-          <div className="flex justify-center gap-2 mb-8">
-            {onboardingScreens.map((_, idx) => (<div key={idx} className={`h-1.5 rounded-full ${idx===onboardingStep?'w-8 bg-blue-500':'w-1.5 bg-slate-700'}`} />))}
-          </div>
-          <button onClick={() => onboardingStep < 2 ? setOnboardingStep(onboardingStep+1) : setCurrentScreen('signup')}
-                  className="w-full py-4 rounded-xl text-blue-100 font-bold text-lg border-2 border-blue-700 hover:bg-blue-900/30 transition-all duration-300 tracking-widest">
-            {onboardingStep < 2 ? 'NEXT' : 'GET STARTED'}
-          </button>
-        </div>
-      </div>
+      <Onboarding
+        onboardingStep={onboardingStep}
+        setOnboardingStep={setOnboardingStep}
+        setCurrentScreen={setCurrentScreen}
+        fontStyle={fontStyle}
+        headerFont={headerFont}
+      />
     );
   }
 
   if (currentScreen === 'signup') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
-        <div className="max-w-md w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-800/30">
-          <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest">SIGN UP</h1>
-          <div className="space-y-5 mb-8">
-            <div>
-              <input 
-                type="text" 
-                placeholder="Full Name" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                style={readableFont}
-                className={`w-full p-4 bg-slate-900/50 border-b-2 ${signupErrors.username ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
-              />
-              {signupErrors.username && <p style={readableFont} className="text-red-400 text-xs mt-1">{signupErrors.username}</p>}
-            </div>
-            <div>
-              <input 
-                type="email" 
-                placeholder="Email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={readableFont} 
-                className={`w-full p-4 bg-slate-900/50 border-b-2 ${signupErrors.email ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
-              />
-              {signupErrors.email && <p style={readableFont} className="text-red-400 text-xs mt-1">{signupErrors.email}</p>}
-            </div>
-            <div className="relative">
-              <input 
-                type="password" 
-                placeholder="Password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={readableFont} 
-                className={`w-full p-4 bg-slate-900/50 border-b-2 ${signupErrors.password ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
-              />
-              <Lock className="absolute right-4 top-4 w-5 h-5 text-slate-600" />
-              {signupErrors.password && <p style={readableFont} className="text-red-400 text-xs mt-1">{signupErrors.password}</p>}
-            </div>
-          </div>
-          <button 
-            onClick={handleSignup}
-            className="w-full py-4 rounded-xl font-bold text-lg border-2 transition-all duration-300 tracking-widest mb-4 text-blue-100 border-blue-700 hover:bg-blue-900/30"
-          >
-            CREATE ACCOUNT
-          </button>
-          <p className="text-center text-slate-600 text-sm">Forgot your password?</p>
-          <div className="flex justify-center gap-2 mt-6"><div className="w-2 h-2 rounded-full bg-blue-500"></div><div className="w-2 h-2 rounded-full bg-slate-700"></div></div>
-        </div>
-      </div>
+      <Signup
+        username={username}
+        setUsername={setUsername}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        signupErrors={signupErrors}
+        handleSignup={handleSignup}
+        fontStyle={fontStyle}
+        headerFont={headerFont}
+      />
     );
   }
 
   if (currentScreen === 'avatar-select') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
-        <div className="max-w-2xl w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-800/30">
-          <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest">CHOOSE AN AVATAR</h1>
-          <div className="grid grid-cols-3 gap-4 mb-10">
-            {avatars.map((a) => {
-              const locked = !isPremium && a.id > 3;
-              return (
-                <button key={a.id} onClick={() => !locked && setSelectedAvatar(a)}
-                        className={`relative bg-slate-900/50 p-6 rounded-2xl border-2 transition-all duration-300 hover:border-blue-500 ${selectedAvatar?.id===a.id?'border-blue-500 bg-blue-900/20':'border-blue-800/30'} ${locked?'opacity-50 cursor-not-allowed':''}`}
-                        title={locked ? 'Premium required' : ''}>
-                  <div className="text-5xl mb-3 text-center">{a.emoji}</div>
-                  {locked && <div className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300">Premium</div>}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-full bg-slate-900/50 border-2 border-blue-800/30 flex items-center justify-center">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M12 4 L8 8 L12 12 L16 8 Z" stroke="#60a5fa" strokeWidth="2"/></svg>
-            </div>
-            <span className="text-blue-100 font-bold tracking-widest">UBLOOM</span>
-          </div>
-          <button onClick={() => { if (selectedAvatar) setCurrentScreen('dashboard'); }}
-                  disabled={!selectedAvatar}
-                  className={`w-full py-4 rounded-xl font-bold text-lg tracking-widest transition-all duration-300 ${selectedAvatar ? 'border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30' : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'}`}>
-            CONTINUE
-          </button>
-        </div>
-      </div>
+      <AvatarSelect
+        avatars={avatars}
+        selectedAvatar={selectedAvatar}
+        setSelectedAvatar={setSelectedAvatar}
+        setCurrentScreen={setCurrentScreen}
+        isPremium={isPremium}
+        fontStyle={fontStyle}
+        headerFont={headerFont}
+      />
     );
   }
 
@@ -554,7 +485,7 @@ const analyzeJournal = async () => {
           {/* Profile / Stats */}
           <div className="col-span-3 bg-slate-950/90 backdrop-blur-xl rounded-3xl p-8 border border-blue-800/30">
             <div className="text-center mb-6">
-              <span className="text-blue-100 font-bold tracking-widest">PROGRESS DASHBOARD</span>
+              <span className="text-blue-100 font-bold tracking-widest" style={headerFont}>PROGRESS DASHBOARD</span>
             </div>
             
             {/* Welcome Message */}
@@ -606,7 +537,7 @@ const analyzeJournal = async () => {
                 {Object.entries(growthCategories).map(([category, progress]) => (
                   <div key={category}>
                     <div className="flex justify-between text-xs text-slate-400 mb-1">
-                      <span style={readableFont}>{category}</span><span style={readableFont}>{progress}%</span>
+                      <span>{category}</span><span>{progress}%</span>
                     </div>
                     <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                       <div className="h-full bg-blue-500" style={{width: `${progress}%`}} />
@@ -626,7 +557,7 @@ const analyzeJournal = async () => {
             {/* Journal */}
             <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-8 border border-blue-800/30">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-blue-100 tracking-widest">JOURNAL</h3>
+                <h3 className="text-xl font-bold text-blue-100 tracking-widest" style={headerFont}>JOURNAL</h3>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-slate-500">{isPremium ? 'Unlimited journals' : 'Free: 1 journal/day'}</span>
                   <button onClick={() => setCurrentScreen('journal')} className="text-blue-400 hover:text-blue-300 text-sm tracking-wider">NEW ENTRY</button>
@@ -634,7 +565,7 @@ const analyzeJournal = async () => {
               </div>
               {journalText ? (
                 <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/20">
-                  <p style={readableFont} className="text-slate-400 italic">"{journalText.substring(0, 120)}..."</p>
+                  <p className="text-slate-400 italic">"{journalText.substring(0, 120)}..."</p>
                 </div>
               ) : (
                 <div className="bg-slate-900/30 p-8 rounded-2xl border-2 border-dashed border-slate-800 text-center">
@@ -647,7 +578,7 @@ const analyzeJournal = async () => {
             {/* Goals summary */}
             <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-8 border border-blue-800/30">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-blue-100 tracking-widest">GOALS</h3>
+                <h3 className="text-xl font-bold text-blue-100 tracking-widest" style={headerFont}>GOALS</h3>
                 <div className="flex items-center gap-3">
                   {!isPremium && <span className="text-xs text-slate-500">Free: up to {freeGoalLimit} active goals</span>}
                 </div>
@@ -655,11 +586,11 @@ const analyzeJournal = async () => {
               <div className="space-y-3">
                 {goals.slice(0,3).map(goal => (
                   <div key={goal.id} className={`flex items-center gap-4 p-4 rounded-xl border ${goal.status==='done'?'bg-blue-900/20 border-blue-800/50':'bg-slate-900/30 border-slate-800'}`}>
-                    <span style={readableFont} className={`flex-1 text-sm ${goal.status==='done'?'line-through text-slate-600':'text-slate-300'}`}>{goal.text}</span>
+                    <span className={`flex-1 text-sm ${goal.status==='done'?'line-through text-slate-600':'text-slate-300'}`}>{goal.text}</span>
                     {goal.status==='active' && (
                       <>
-                        <button onClick={() => markDone(goal)} style={readableFont} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Done</button>
-                        <button onClick={() => markSkipped(goal)} style={readableFont} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
+                        <button onClick={() => markDone(goal)} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Done</button>
+                        <button onClick={() => markSkipped(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
                       </>
                     )}
                     {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
@@ -675,7 +606,7 @@ const analyzeJournal = async () => {
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-4xl w-full p-8 border border-blue-800/30">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-blue-100 tracking-widest">MARKETPLACE</h2>
+                <h2 className="text-2xl font-bold text-blue-100 tracking-widest" style={headerFont}>MARKETPLACE</h2>
                 <button onClick={() => setShowShop(false)} className="text-slate-500 hover:text-blue-400"><X className="w-6 h-6" /></button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -720,13 +651,13 @@ const analyzeJournal = async () => {
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-3xl w-full p-8 border border-blue-800/30">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-blue-100 tracking-widest">UPGRADE</h2>
+                <h2 className="text-2xl font-bold text-blue-100 tracking-widest" style={headerFont}>UPGRADE</h2>
                 <button onClick={() => setShowPremium(false)} className="text-slate-500 hover:text-blue-400"><X className="w-6 h-6" /></button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-6 rounded-2xl border border-blue-800/40 bg-slate-900/60">
                   <h3 className="text-blue-100 font-bold tracking-wider mb-2">Free</h3>
-                  <ul style={readableFont} className="text-slate-400 text-sm space-y-2">
+                  <ul className="text-slate-400 text-sm space-y-2">
                     <li>• 1 journal/day</li>
                     <li>• 5 active goals max</li>
                     <li>• Basic avatars</li>
@@ -738,7 +669,7 @@ const analyzeJournal = async () => {
                     <h3 className="text-blue-100 font-bold tracking-wider">Premium</h3>
                     <span className="text-sm text-blue-200">$4.99 / month</span>
                   </div>
-                  <ul style={readableFont} className="text-blue-200 text-sm space-y-2">
+                  <ul className="text-blue-200 text-sm space-y-2">
                     <li>• Unlimited journals</li>
                     <li>• Unlimited goals</li>
                     <li>• All cosmetics unlocked</li>
@@ -763,7 +694,7 @@ const analyzeJournal = async () => {
             <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-md w-full p-8 border border-blue-800/30 shadow-2xl">
               <div className="text-center">
                 <div className="text-4xl mb-4">⚠️</div>
-                <h2 className="text-xl font-bold text-blue-100 mb-4 tracking-widest">GOAL LIMIT REACHED</h2>
+                <h2 className="text-xl font-bold text-blue-100 mb-4 tracking-widest" style={headerFont}>GOAL LIMIT REACHED</h2>
                 <p className="text-slate-300 mb-6">You've reached the maximum of {freeGoalLimit} active goals on the free tier.</p>
                 <div className="flex gap-3">
                   <button
@@ -789,119 +720,30 @@ const analyzeJournal = async () => {
     );
   }
 
-  // JOURNAL
   if (currentScreen === 'journal') {
-    const freeLimitHit = !isPremium && journalCountToday >= 1;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" style={fontStyle}>
-        <Navigation />
-        <div className="max-w-4xl mx-auto p-8">
-          <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
-            <div className="flex items-center justify-between mb-8">
-              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">JOURNAL ENTRY</h1>
-              <div className="flex items-center gap-4">
-                {!isPremium && <span className="text-xs text-slate-500">Free: 1 per day</span>}
-                <div className="text-xs text-slate-500">
-                  <div>⌘+Enter to save</div>
-                  <div>⌘+Shift+A to analyze</div>
-                </div>
-              </div>
-            </div>
-            <textarea
-              value={journalText}
-              onChange={(e) => setJournalText(e.target.value)}
-              placeholder="Express your thoughts..."
-              style={readableFont}
-              className="w-full h-96 p-6 bg-slate-900/50 border border-blue-800/30 rounded-2xl resize-none focus:outline-none focus:border-blue-500 text-slate-300 mb-6"
-            />
-            
-            {/* Character count */}
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-xs text-slate-500">
-                {journalText.length} characters
-              </span>
-              {journalHistory.length > 0 && (
-                <button 
-                  onClick={() => setCurrentScreen('journal-history')}
-                  className="text-xs text-blue-400 hover:text-blue-300"
-                >
-                  View History ({journalHistory.length})
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button 
-                onClick={analyzeJournal}
-                disabled={!journalText.trim() || aiLoading}
-                className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all tracking-widest relative ${
-                  !journalText.trim() || aiLoading 
-                    ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-slate-700' 
-                    : 'text-blue-100 border-blue-700 hover:bg-blue-900/30'
-                }`}
-              >
-                {aiLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                )}
-                <span className={aiLoading ? 'opacity-0' : 'opacity-100'}>
-                  {aiLoading ? 'ANALYZING...' : 'ANALYZE'}
-                </span>
-              </button>
-              <button 
-                onClick={handleSaveJournal} 
-                disabled={freeLimitHit || !journalText.trim()}
-                className={`px-8 py-4 rounded-xl font-bold tracking-widest ${
-                  freeLimitHit || !journalText.trim() 
-                    ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed' 
-                    : 'text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30'
-                }`}
-              >
-                SAVE {dailyJournalAwarded !== todayKey() ? '(+10)' : ''}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Reflection Modal (after ANALYZE) */}
-        {showReflection && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-            <div className="bg-slate-950/95 rounded-3xl max-w-2xl w-full p-8 border border-blue-800/30">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-blue-100">Your UBloom Reflection</h2>
-                <button onClick={() => setShowReflection(false)} className="text-slate-500 hover:text-blue-400"><X className="w-6 h-6" /></button>
-              </div>
-
-              {aiLoading && <p className="text-slate-400">Analyzing…</p>}
-              {aiError && <p className="text-amber-300 text-sm mb-4">Note: {aiError}</p>}
-
-              {reflection ? (
-                <>
-                  <div className="mb-6">
-                    <h3 className="text-blue-100 font-semibold mb-2">Insight</h3>
-                    <p className="text-slate-300">{reflection.insight}</p>
-                  </div>
-                  <div className="mb-6">
-                    <h3 className="text-blue-100 font-semibold mb-2">Growth Path</h3>
-                    <p className="text-slate-300">{reflection.growth_path}</p>
-                    <button
-                      onClick={() => { addGoal(reflection.growth_path.replace(/^Try setting a mini-goal:\s*/i, '')); setShowReflection(false); }}
-                      className="mt-4 px-4 py-2 rounded-xl text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30">
-                      Set as Goal
-                    </button>
-                  </div>
-                  <div className="mb-2">
-                    <h3 className="text-blue-100 font-semibold mb-2">Reflect Further</h3>
-                    <p className="text-slate-300 italic">{reflection.reflection_prompt}</p>
-                  </div>
-                </>
-              ) : (
-                !aiLoading && <p className="text-slate-400">No reflection available.</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      <Journal
+        journalText={journalText}
+        setJournalText={setJournalText}
+        journalHistory={journalHistory}
+        setCurrentScreen={setCurrentScreen}
+        analyzeJournal={analyzeJournal}
+        handleSaveJournal={handleSaveJournal}
+        showReflection={showReflection}
+        setShowReflection={setShowReflection}
+        aiLoading={aiLoading}
+        aiError={aiError}
+        reflection={reflection}
+        addGoal={addGoal}
+        isPremium={isPremium}
+        journalCountToday={journalCountToday}
+        dailyJournalAwarded={dailyJournalAwarded}
+        todayKey={todayKey}
+        fontStyle={fontStyle}
+        headerFont={headerFont}
+        currentScreen={currentScreen}
+        coins={coins}
+      />
     );
   }
 
@@ -915,7 +757,7 @@ const analyzeJournal = async () => {
         <div className="max-w-4xl mx-auto p-8">
           <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">GOALS</h1>
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest" style={headerFont}>GOALS</h1>
               <div className="flex items-center gap-4">
                 <div className="text-sm text-blue-200 flex items-center gap-1"><Coins className="w-4 h-4" /> {coins}</div>
                 <button className="text-blue-400 hover:text-blue-300" onClick={handlePlusClick}><Plus className="w-6 h-6" /></button>
@@ -971,9 +813,9 @@ const analyzeJournal = async () => {
               {activeGoals.length === 0 && <div className="text-slate-600 text-sm">No active goals. Add one above!</div>}
               {activeGoals.map(goal => (
                 <div key={goal.id} className="p-4 rounded-xl bg-slate-900/30 border border-slate-800 flex items-center gap-3">
-                  <span style={readableFont} className="flex-1 text-slate-300">{goal.text}</span>
-                  <button onClick={() => markDone(goal)} style={readableFont} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Done</button>
-                  <button onClick={() => markSkipped(goal)} style={readableFont} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
+                  <span className="flex-1 text-slate-300">{goal.text}</span>
+                  <button onClick={() => markDone(goal)} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Done</button>
+                  <button onClick={() => markSkipped(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
                 </div>
               ))}
             </div>
@@ -984,9 +826,9 @@ const analyzeJournal = async () => {
               {history.length === 0 && <div className="text-slate-600 text-sm">No history yet.</div>}
               {history.map(goal => (
                 <div key={goal.id} className={`p-4 rounded-xl border ${goal.status==='done'?'bg-blue-900/20 border-blue-800/50':'bg-slate-900/30 border-slate-800'} flex items-center gap-3`}>
-                  <span style={readableFont} className={`flex-1 ${goal.status==='done'?'line-through text-slate-500':'text-slate-300'}`}>{goal.text}</span>
+                  <span className={`flex-1 ${goal.status==='done'?'line-through text-slate-500':'text-slate-300'}`}>{goal.text}</span>
                   {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
-                  <button onClick={() => markActive(goal)} style={readableFont} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Make Active</button>
+                  <button onClick={() => markActive(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Make Active</button>
                 </div>
               ))}
             </div>
@@ -1035,7 +877,7 @@ const analyzeJournal = async () => {
         <div className="max-w-6xl mx-auto p-8">
           <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
             <div className="flex justify-between items-center mb-8">
-              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">GAMES</h1>
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest" style={headerFont}>GAMES</h1>
               <div className="text-sm text-blue-200 flex items-center gap-1">
                 <Coins className="w-4 h-4" /> {coins}
               </div>
@@ -1047,7 +889,7 @@ const analyzeJournal = async () => {
                 <div className="text-center">
                   <div className="text-4xl mb-4">🎯</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">FOCUS QUEST</h3>
-                  <p style={readableFont} className="text-slate-400 text-sm mb-4">Train your concentration with mindful challenges</p>
+                  <p className="text-slate-400 text-sm mb-4">Train your concentration with mindful challenges</p>
                   <div className="mb-4">
                     {unlockedGames.includes('FOCUS') || isPremium ? (
                       <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Unlocked</span>
@@ -1069,7 +911,7 @@ const analyzeJournal = async () => {
                 <div className="text-center">
                   <div className="text-4xl mb-4">🎭</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">MOOD MATCHER</h3>
-                  <p style={readableFont} className="text-slate-400 text-sm mb-4">Match emotions to build emotional intelligence</p>
+                  <p className="text-slate-400 text-sm mb-4">Match emotions to build emotional intelligence</p>
                   <div className="mb-4">
                     <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
                   </div>
@@ -1087,7 +929,7 @@ const analyzeJournal = async () => {
                 <div className="text-center">
                   <div className="text-4xl mb-4">🌸</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">ZEN GARDEN</h3>
-                  <p style={readableFont} className="text-slate-400 text-sm mb-4">Relax and meditate in your virtual garden</p>
+                  <p className="text-slate-400 text-sm mb-4">Relax and meditate in your virtual garden</p>
                   <div className="mb-4">
                     {isPremium ? (
                       <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Premium</span>
@@ -1109,7 +951,7 @@ const analyzeJournal = async () => {
                 <div className="text-center">
                   <div className="text-4xl mb-4">🏰</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">MEMORY PALACE</h3>
-                  <p style={readableFont} className="text-slate-400 text-sm mb-4">Build and explore your personal memory space</p>
+                  <p className="text-slate-400 text-sm mb-4">Build and explore your personal memory space</p>
                   <div className="mb-4">
                     <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">Coming Soon</span>
                   </div>
@@ -1127,7 +969,7 @@ const analyzeJournal = async () => {
                 <div className="text-center">
                   <div className="text-4xl mb-4">✨</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">GRATITUDE COLLECTOR</h3>
-                  <p style={readableFont} className="text-slate-400 text-sm mb-4">Collect and share moments of gratitude</p>
+                  <p className="text-slate-400 text-sm mb-4">Collect and share moments of gratitude</p>
                   <div className="mb-4">
                     <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
                   </div>
@@ -1145,7 +987,7 @@ const analyzeJournal = async () => {
                 <div className="text-center">
                   <div className="text-4xl mb-4">⚔️</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">CHALLENGE ARENA</h3>
-                  <p style={readableFont} className="text-slate-400 text-sm mb-4">Compete in wellness challenges with friends</p>
+                  <p className="text-slate-400 text-sm mb-4">Compete in wellness challenges with friends</p>
                   <div className="mb-4">
                     {isPremium ? (
                       <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Premium</span>
@@ -1205,7 +1047,7 @@ const analyzeJournal = async () => {
         <div className="max-w-4xl mx-auto p-8">
           <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
             <div className="flex justify-between items-center mb-8">
-              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">FRIENDS</h1>
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest" style={headerFont}>FRIENDS</h1>
               <button className="px-4 py-2 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider">
                 ADD FRIEND
               </button>
@@ -1219,26 +1061,26 @@ const analyzeJournal = async () => {
                   <div className="flex items-center gap-4">
                     <div className="text-2xl">🤖</div>
                     <div>
-                      <div style={readableFont} className="text-slate-300 font-medium">Riley Thompson</div>
-                      <div style={readableFont} className="text-slate-500 text-sm">Mutual friend: Alex Chen</div>
+                      <div className="text-slate-300 font-medium">Riley Thompson</div>
+                      <div className="text-slate-500 text-sm">Mutual friend: Alex Chen</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button style={readableFont} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Accept</button>
-                    <button style={readableFont} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Decline</button>
+                    <button className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Accept</button>
+                    <button className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Decline</button>
                   </div>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-900/30 border border-blue-800/30 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-2xl">🎨</div>
                     <div>
-                      <div style={readableFont} className="text-slate-300 font-medium">Casey Morgan</div>
-                      <div style={readableFont} className="text-slate-500 text-sm">From UBloom Community</div>
+                      <div className="text-slate-300 font-medium">Casey Morgan</div>
+                      <div className="text-slate-500 text-sm">From UBloom Community</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button style={readableFont} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Accept</button>
-                    <button style={readableFont} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Decline</button>
+                    <button className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Accept</button>
+                    <button className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Decline</button>
                   </div>
                 </div>
               </div>
@@ -1259,8 +1101,8 @@ const analyzeJournal = async () => {
                         }`} />
                       </div>
                       <div>
-                        <div style={readableFont} className="text-slate-300 font-medium">{friend.name}</div>
-                        <div style={readableFont} className="text-slate-500 text-sm flex items-center gap-3">
+                        <div className="text-slate-300 font-medium">{friend.name}</div>
+                        <div className="text-slate-500 text-sm flex items-center gap-3">
                           <span>{friend.lastActive}</span>
                           <span className="flex items-center gap-1">
                             <Flame className="w-3 h-3" />
@@ -1270,8 +1112,8 @@ const analyzeJournal = async () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button style={readableFont} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Message</button>
-                      <button style={readableFont} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Challenge</button>
+                      <button className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Message</button>
+                      <button className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Challenge</button>
                     </div>
                   </div>
                 ))}
@@ -1286,41 +1128,41 @@ const analyzeJournal = async () => {
                   <div className="flex items-center gap-4">
                     <div className="text-xl">🥇</div>
                     <div>
-                      <div style={readableFont} className="text-slate-300 font-medium">Jordan Kim</div>
-                      <div style={readableFont} className="text-slate-500 text-sm">15 day streak</div>
+                      <div className="text-slate-300 font-medium">Jordan Kim</div>
+                      <div className="text-slate-500 text-sm">15 day streak</div>
                     </div>
                   </div>
-                  <div style={readableFont} className="text-blue-400 font-bold">2,450 pts</div>
+                  <div className="text-blue-400 font-bold">2,450 pts</div>
                 </div>
                 <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-xl">🥈</div>
                     <div>
-                      <div style={readableFont} className="text-slate-300 font-medium">Alex Chen</div>
-                      <div style={readableFont} className="text-slate-500 text-sm">12 day streak</div>
+                      <div className="text-slate-300 font-medium">Alex Chen</div>
+                      <div className="text-slate-500 text-sm">12 day streak</div>
                     </div>
                   </div>
-                  <div style={readableFont} className="text-blue-400 font-bold">2,180 pts</div>
+                  <div className="text-blue-400 font-bold">2,180 pts</div>
                 </div>
                 <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-xl">🥉</div>
                     <div>
-                      <div style={readableFont} className="text-slate-300 font-medium">You</div>
-                      <div style={readableFont} className="text-slate-500 text-sm">{streak} day streak</div>
+                      <div className="text-slate-300 font-medium">You</div>
+                      <div className="text-slate-500 text-sm">{streak} day streak</div>
                     </div>
                   </div>
-                  <div style={readableFont} className="text-blue-400 font-bold">{pointsToday * 7} pts</div>
+                  <div className="text-blue-400 font-bold">{pointsToday * 7} pts</div>
                 </div>
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-xl">4️⃣</div>
                     <div>
-                      <div style={readableFont} className="text-slate-300 font-medium">Maya Patel</div>
-                      <div style={readableFont} className="text-slate-500 text-sm">8 day streak</div>
+                      <div className="text-slate-300 font-medium">Maya Patel</div>
+                      <div className="text-slate-500 text-sm">8 day streak</div>
                     </div>
                   </div>
-                  <div style={readableFont} className="text-blue-400 font-bold">1,920 pts</div>
+                  <div className="text-blue-400 font-bold">1,920 pts</div>
                 </div>
               </div>
             </div>
@@ -1338,7 +1180,7 @@ const analyzeJournal = async () => {
         <div className="max-w-4xl mx-auto p-8">
           <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
             <div className="flex items-center justify-between mb-8">
-              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">JOURNAL HISTORY</h1>
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest" style={headerFont}>JOURNAL HISTORY</h1>
               <button 
                 onClick={() => setCurrentScreen('journal')}
                 className="text-blue-400 hover:text-blue-300 text-sm"
