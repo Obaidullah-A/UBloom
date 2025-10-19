@@ -96,6 +96,7 @@ const UBloomApp = () => {
   
   // Game modals
   const [showMoodMatcher, setShowMoodMatcher] = useState(false);
+  const [showFocusQuest, setShowFocusQuest] = useState(false);
   
   // Progress tracking
   const [emotionHistory, setEmotionHistory] = useState<{date: string, emotion: string, score: number}[]>([
@@ -318,12 +319,12 @@ const analyzeJournal = async () => {
   };
 
   // Marketplace / Premium (unchanged behaviors)
-  const unlockFocusGame = () => {
-    if (isPremium || unlockedGames.includes('FOCUS')) { alert('Focus game already available.'); return; }
+  const unlockGratitudeGame = () => {
+    if (isPremium || unlockedGames.includes('GRATITUDE')) { alert('Gratitude game already available.'); return; }
     if (coins < 200) { alert('Not enough coins.'); return; }
     setCoins(c => c - 200);
-    setUnlockedGames(prev => [...prev, 'FOCUS']);
-    alert('Focus Quest unlocked!');
+    setUnlockedGames(prev => [...prev, 'GRATITUDE']);
+    alert('Gratitude Collector unlocked!');
   };
   const buyEventTicket = () => {
     if (coins < 500) { alert('Not enough coins.'); return; }
@@ -613,7 +614,7 @@ const analyzeJournal = async () => {
                 <div className="md:col-span-3 bg-blue-900/20 p-4 rounded-xl border border-blue-800/50 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3"><Coins className="w-6 h-6 text-blue-400" /><span className="text-blue-100 font-bold tracking-wider">BALANCE: {coins} COINS</span></div>
                   <div className="flex items-center gap-2">
-                    <button onClick={unlockFocusGame} className="px-3 py-2 rounded-lg border border-blue-700 text-blue-100 hover:bg-blue-900/30 text-xs flex items-center gap-2"><Target className="w-4 h-4" /> Unlock Focus (200)</button>
+                    <button onClick={unlockGratitudeGame} className="px-3 py-2 rounded-lg border border-blue-700 text-blue-100 hover:bg-blue-900/30 text-xs flex items-center gap-2"><Sparkles className="w-4 h-4" /> Unlock Gratitude (200)</button>
                     <button onClick={buyEventTicket} className="px-3 py-2 rounded-lg border border-blue-700 text-blue-100 hover:bg-blue-900/30 text-xs flex items-center gap-2"><Ticket className="w-4 h-4" /> Event Ticket (500)</button>
                     <button onClick={reviveStreak} className="px-3 py-2 rounded-lg border border-blue-700 text-blue-100 hover:bg-blue-900/30 text-xs flex items-center gap-2"><Flame className="w-4 h-4" /> Revive Streak (100)</button>
                   </div>
@@ -891,17 +892,13 @@ const analyzeJournal = async () => {
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">FOCUS QUEST</h3>
                   <p className="text-slate-400 text-sm mb-4">Train your concentration with mindful challenges</p>
                   <div className="mb-4">
-                    {unlockedGames.includes('FOCUS') || isPremium ? (
-                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Unlocked</span>
-                    ) : (
-                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">200 Coins</span>
-                    )}
+                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
                   </div>
                   <button
-                    onClick={unlockedGames.includes('FOCUS') || isPremium ? () => alert('🎯 Focus Quest launched!') : unlockFocusGame}
+                    onClick={() => setShowFocusQuest(true)}
                     className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
                   >
-                    {unlockedGames.includes('FOCUS') || isPremium ? 'PLAY' : 'UNLOCK'}
+                    PLAY
                   </button>
                 </div>
               </div>
@@ -971,13 +968,17 @@ const analyzeJournal = async () => {
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">GRATITUDE COLLECTOR</h3>
                   <p className="text-slate-400 text-sm mb-4">Collect and share moments of gratitude</p>
                   <div className="mb-4">
-                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
+                    {unlockedGames.includes('GRATITUDE') || isPremium ? (
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Unlocked</span>
+                    ) : (
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">200 Coins</span>
+                    )}
                   </div>
                   <button
-                    onClick={() => alert('✨ Gratitude Collector opened!')}
+                    onClick={unlockedGames.includes('GRATITUDE') || isPremium ? () => alert('✨ Gratitude Collector opened!') : unlockGratitudeGame}
                     className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
                   >
-                    COLLECT
+                    {unlockedGames.includes('GRATITUDE') || isPremium ? 'COLLECT' : 'UNLOCK'}
                   </button>
                 </div>
               </div>
@@ -1023,6 +1024,27 @@ const analyzeJournal = async () => {
                   className="w-full h-full border-none"
                   sandbox="allow-scripts"
                   title="Mood Matcher Game"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Focus Quest Game Modal */}
+        {showFocusQuest && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-4xl w-full h-[600px] border border-blue-800/30 relative overflow-hidden">
+              <div className="flex justify-between items-center p-6 border-b border-blue-800/30">
+                <h2 className="text-xl font-bold text-blue-100 tracking-widest">🎯 FOCUS QUEST</h2>
+                <button onClick={() => setShowFocusQuest(false)} className="text-slate-500 hover:text-blue-400">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="h-full">
+                <iframe
+                  srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Wave Trace</title><style>*{box-sizing:border-box}body{margin:0;font-family:system-ui;background:#0f172a;color:#e2e8f0;overflow:hidden}#ui{position:absolute;top:0;left:0;right:0;z-index:10;padding:16px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(15,23,42,0.9),transparent)}#controls{display:flex;gap:12px;align-items:center}button,select{padding:8px 12px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:6px;cursor:pointer}button:hover,select:hover{background:#334155}#stats{display:flex;gap:16px;font-size:14px}#stats div{text-align:center}#stats .label{font-size:11px;color:#94a3b8;text-transform:uppercase}#stats .value{font-weight:bold;font-size:16px}#canvas{display:block;width:100%;height:100vh;background:radial-gradient(ellipse at center,#1e293b 0%,#0f172a 100%)}</style></head><body><div id="ui"><div id="controls"><button id="start">Start</button><button id="reset">Reset</button><select id="difficulty"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select><select id="style"><option value="sine" selected>Sine Wave</option><option value="double">Double Sine</option><option value="noisy">Noisy Wave</option></select></div><div id="stats"><div><div class="label">Score</div><div class="value" id="score">0</div></div><div><div class="label">Streak</div><div class="value" id="streak">0.0s</div></div><div><div class="label">Status</div><div class="value" id="status">Ready</div></div></div></div><canvas id="canvas"></canvas><script>const canvas=document.getElementById('canvas');const ctx=canvas.getContext('2d');const startBtn=document.getElementById('start');const resetBtn=document.getElementById('reset');const difficultySel=document.getElementById('difficulty');const styleSel=document.getElementById('style');const scoreEl=document.getElementById('score');const streakEl=document.getElementById('streak');const statusEl=document.getElementById('status');let running=false,tracing=false,failed=false,score=0,streak=0,lastT=0;let band=25,speed=1;const pointer={x:0,y:0};function resize(){canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight}resize();window.addEventListener('resize',resize);function setDifficulty(){const d=difficultySel.value;if(d==='easy'){band=35;speed=0.7}else if(d==='normal'){band=25;speed=1}else{band=15;speed=1.3}}setDifficulty();function waveY(x,t){const style=styleSel.value;const cx=canvas.width/2;const cy=canvas.height/2;const freq=0.003*speed;const amp=60;if(style==='sine'){return cy+amp*Math.sin((x-cx)*freq+t*speed)}else if(style==='double'){return cy+amp*Math.sin((x-cx)*freq+t*speed)+20*Math.sin((x-cx)*freq*2.5+t*speed*1.5)}else{const noise=10*Math.sin((x-cx)*0.01+t*3)*Math.cos((x-cx)*0.007+t*2);return cy+amp*Math.sin((x-cx)*freq+t*speed)+noise}}function clear(){ctx.clearRect(0,0,canvas.width,canvas.height)}function drawWave(t){ctx.lineWidth=band*2;ctx.strokeStyle='rgba(59,130,246,0.15)';ctx.beginPath();for(let x=0;x<=canvas.width;x+=4){const y=waveY(x,t);if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke();ctx.lineWidth=3;ctx.strokeStyle='rgba(122,162,255,0.95)';ctx.beginPath();for(let x=0;x<=canvas.width;x+=6){const y=waveY(x,t);if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()}function drawBall(){const r=9;ctx.beginPath();ctx.arc(pointer.x,pointer.y,r+2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fill();ctx.beginPath();ctx.arc(pointer.x,pointer.y,r,0,Math.PI*2);ctx.fillStyle=failed?'#ff6b6b':(tracing?'#61d095':'#e8ecff');ctx.fill()}function distToWave(x,y,t){const wy=waveY(x,t);return Math.abs(wy-y)}function tick(ts){if(!running){lastT=ts;requestAnimationFrame(tick);return}const dt=(ts-lastT)/1000||0;lastT=ts;const t=ts/1000;clear();drawWave(t);if(tracing&&!failed){const d=distToWave(pointer.x,pointer.y,t);const within=d<=band;if(within){score+=dt*10;streak+=dt}else{failed=true;statusEl.textContent='Off path! Try again'}}drawBall();scoreEl.textContent=Math.floor(score);streakEl.textContent=streak.toFixed(1)+'s';requestAnimationFrame(tick)}function start(){running=true;failed=false;statusEl.textContent='Hold to trace'}function reset(){running=false;tracing=false;failed=false;score=0;streak=0;statusEl.textContent='Ready'}startBtn.addEventListener('click',start);resetBtn.addEventListener('click',reset);difficultySel.addEventListener('change',()=>{setDifficulty()});styleSel.addEventListener('change',()=>{});canvas.addEventListener('mousemove',(e)=>{const rect=canvas.getBoundingClientRect();pointer.x=e.clientX-rect.left;pointer.y=e.clientY-rect.top});canvas.addEventListener('mouseleave',()=>{if(tracing){failed=true;statusEl.textContent='Left canvas'}tracing=false});canvas.addEventListener('mousedown',()=>{if(running){tracing=true;failed=false;statusEl.textContent='Tracing…'}});window.addEventListener('mouseup',()=>{if(tracing){failed=true;statusEl.textContent='Released mouse'}tracing=false});canvas.addEventListener('contextmenu',e=>e.preventDefault());requestAnimationFrame(tick)</script></body></html>`}
+                  title="Focus Quest"
+                  className="w-full h-full border-0"
                 />
               </div>
             </div>
