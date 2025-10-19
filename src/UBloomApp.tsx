@@ -29,7 +29,7 @@ const todayKey = () => new Date().toISOString().slice(0,10); // YYYY-MM-DD
 
 const UBloomApp = () => {
   // Routing
-  const [currentScreen, setCurrentScreen] = useState<'onboarding'|'signup'|'avatar-select'|'dashboard'|'journal'|'goals'|'games'|'friends'>('onboarding');
+  const [currentScreen, setCurrentScreen] = useState<'onboarding'|'signup'|'avatar-select'|'dashboard'|'journal'|'goals'|'games'|'friends'|'journal-history'>('onboarding');
   const [onboardingStep, setOnboardingStep] = useState(0);
 
   // Profile
@@ -42,6 +42,12 @@ const UBloomApp = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [reflection, setReflection] = useState<AIReflection | null>(null);
+  const [journalHistory, setJournalHistory] = useState<{date: string, text: string, reflection?: AIReflection | null}[]>([]);
+  
+  // Notifications & Feedback
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
 
   // Goals
   const [goals, setGoals] = useState<Goal[]>([
@@ -142,19 +148,38 @@ const UBloomApp = () => {
     }
   };
 
+  // Toast notification system
+  const showToastMessage = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
   // SAVE (awards +10 once/day, increments pointsToday)
   const handleSaveJournal = () => {
     const today = todayKey();
     if (!isPremium && journalCountToday >= 1) {
-      alert('Free tier: 1 journal/day. Upgrade to Premium for unlimited journals.');
+      showToastMessage('Free tier: 1 journal/day. Upgrade to Premium for unlimited journals.', 'error');
       return;
     }
+    
+    // Save to history
+    setJournalHistory(prev => [{
+      date: today,
+      text: journalText,
+      reflection: reflection || undefined
+    }, ...prev.filter(entry => entry.date !== today)]);
+    
     setJournalCountToday(c => c + 1);
     touchDaily();
     if (dailyJournalAwarded !== today) {
       addCoins(10);
       addPointsToday(10);
       setDailyJournalAwarded(today);
+      showToastMessage('Journal saved! +10 coins earned', 'success');
+    } else {
+      showToastMessage('Journal saved!', 'success');
     }
     setCurrentScreen('dashboard');
   };
@@ -164,15 +189,19 @@ const UBloomApp = () => {
     if (!isPremium) {
       const activeCount = goals.filter(g => g.status === 'active').length;
       if (activeCount >= freeGoalLimit) {
-        alert(`Free tier: up to ${freeGoalLimit} active goals. Upgrade to Premium for unlimited goals.`);
+        showToastMessage(`Free tier: up to ${freeGoalLimit} active goals. Upgrade to Premium for unlimited goals.`, 'error');
         return;
       }
     }
     const text = textFromAI ?? prompt('New goal') ?? '';
     if (!text.trim()) return;
     setGoals(prev => [{ id: Date.now(), text: text.trim(), status: 'active', createdAt: new Date().toISOString() }, ...prev]);
-    // Tiny toast UX
-    if (textFromAI) alert('✨ Mini-goal added to your Active Goals!');
+    
+    if (textFromAI) {
+      showToastMessage('✨ Mini-goal added to your Active Goals!', 'success');
+    } else {
+      showToastMessage('Goal added successfully!', 'success');
+    }
   };
 
   // Goal actions
@@ -181,7 +210,11 @@ const UBloomApp = () => {
       if (g.id !== goal.id) return g;
       // Reward +20 only once when moving to done the first time
       const alreadyRewarded = g.rewarded === true;
-      if (!alreadyRewarded) { addCoins(20); addPointsToday(20); }
+      if (!alreadyRewarded) { 
+        addCoins(20); 
+        addPointsToday(20);
+        showToastMessage('🎉 Goal completed! +20 coins earned', 'success');
+      }
       return { ...g, status: 'done', rewarded: true, completedAt: new Date().toISOString() };
     }));
   };
@@ -240,6 +273,43 @@ const UBloomApp = () => {
     return () => clearInterval(id);
   }, [dailyJournalAwarded]);
 
+  // Auto-save journal draft
+  useEffect(() => {
+    if (journalText.length > 10) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('journal-draft', journalText);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [journalText]);
+
+  // Load journal draft on mount
+  useEffect(() => {
+    const draft = localStorage.getItem('journal-draft');
+    if (draft && !journalText) {
+      setJournalText(draft);
+    }
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Enter to save journal
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && currentScreen === 'journal') {
+        e.preventDefault();
+        if (journalText.trim()) handleSaveJournal();
+      }
+      // Ctrl/Cmd + Shift + A to analyze
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A' && currentScreen === 'journal') {
+        e.preventDefault();
+        if (journalText.trim() && !aiLoading) analyzeJournal();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentScreen, journalText, aiLoading]);
+
   // ---------- UI ----------
   const Navigation = () => (
     <nav className="bg-slate-950/90 backdrop-blur-xl border-b border-blue-800/30 px-6 py-4 flex justify-between items-center">
@@ -255,15 +325,81 @@ const UBloomApp = () => {
         ) : null}
       </div>
       <div className="flex items-center gap-3">
-        <div className="text-sm text-blue-200 flex items-center gap-1">
+        <div className="text-sm text-blue-200 flex items-center gap-1" title="Your current coin balance">
           <Coins className="w-4 h-4" /> {coins}
         </div>
-        <button onClick={() => setCurrentScreen('dashboard')} className={`p-3 rounded-lg ${currentScreen==='dashboard'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Home className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('journal')} className={`p-3 rounded-lg ${currentScreen==='journal'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><BookOpen className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('goals')} className={`p-3 rounded-lg ${currentScreen==='goals'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Target className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('games')} className={`p-3 rounded-lg ${currentScreen==='games'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Zap className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('friends')} className={`p-3 rounded-lg ${currentScreen==='friends'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Users className="w-5 h-5" /></button>
-        <button onClick={() => setShowPremium(true)} className="p-3 rounded-lg text-slate-500 hover:text-blue-400" aria-label="Premium"><Sparkles className="w-5 h-5" /></button>
+        
+        <div className="relative group">
+          <button 
+            onClick={() => setCurrentScreen('dashboard')} 
+            className={`p-3 rounded-lg transition-all ${currentScreen==='dashboard'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
+          >
+            <Home className="w-5 h-5" />
+          </button>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Dashboard
+          </div>
+        </div>
+        
+        <div className="relative group">
+          <button 
+            onClick={() => setCurrentScreen('journal')} 
+            className={`p-3 rounded-lg transition-all ${currentScreen==='journal'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
+          >
+            <BookOpen className="w-5 h-5" />
+          </button>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Journal & AI Analysis
+          </div>
+        </div>
+        
+        <div className="relative group">
+          <button 
+            onClick={() => setCurrentScreen('goals')} 
+            className={`p-3 rounded-lg transition-all ${currentScreen==='goals'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
+          >
+            <Target className="w-5 h-5" />
+          </button>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Goals & Progress
+          </div>
+        </div>
+        
+        <div className="relative group">
+          <button 
+            onClick={() => setCurrentScreen('games')} 
+            className={`p-3 rounded-lg transition-all ${currentScreen==='games'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
+          >
+            <Zap className="w-5 h-5" />
+          </button>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Mindfulness Games
+          </div>
+        </div>
+        
+        <div className="relative group">
+          <button 
+            onClick={() => setCurrentScreen('friends')} 
+            className={`p-3 rounded-lg transition-all ${currentScreen==='friends'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}
+          >
+            <Users className="w-5 h-5" />
+          </button>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Social & Friends
+          </div>
+        </div>
+        
+        <div className="relative group">
+          <button 
+            onClick={() => setShowPremium(true)} 
+            className="p-3 rounded-lg text-slate-500 hover:text-blue-400 transition-all"
+          >
+            <Sparkles className="w-5 h-5" />
+          </button>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-slate-900/95 border border-blue-800/50 text-blue-100 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Upgrade to Premium
+          </div>
+        </div>
       </div>
     </nav>
   );
@@ -593,7 +729,13 @@ const UBloomApp = () => {
           <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-2xl font-bold text-blue-100 tracking-widest">JOURNAL ENTRY</h1>
-              {!isPremium && <span className="text-xs text-slate-500">Free: 1 per day</span>}
+              <div className="flex items-center gap-4">
+                {!isPremium && <span className="text-xs text-slate-500">Free: 1 per day</span>}
+                <div className="text-xs text-slate-500">
+                  <div>⌘+Enter to save</div>
+                  <div>⌘+Shift+A to analyze</div>
+                </div>
+              </div>
             </div>
             <textarea
               value={journalText}
@@ -601,13 +743,49 @@ const UBloomApp = () => {
               placeholder="Express your thoughts..."
               className="w-full h-96 p-6 bg-slate-900/50 border border-blue-800/30 rounded-2xl resize-none focus:outline-none focus:border-blue-500 text-slate-300 mb-6"
             />
+            
+            {/* Character count */}
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-xs text-slate-500">
+                {journalText.length} characters
+              </span>
+              {journalHistory.length > 0 && (
+                <button 
+                  onClick={() => setCurrentScreen('journal-history')}
+                  className="text-xs text-blue-400 hover:text-blue-300"
+                >
+                  View History ({journalHistory.length})
+                </button>
+              )}
+            </div>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button onClick={analyzeJournal}
-                      className="flex-1 py-4 rounded-xl text-blue-100 font-bold border-2 border-blue-700 hover:bg-blue-900/30 transition-all tracking-widest">
-                ANALYZE
+              <button 
+                onClick={analyzeJournal}
+                disabled={!journalText.trim() || aiLoading}
+                className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all tracking-widest relative ${
+                  !journalText.trim() || aiLoading 
+                    ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-slate-700' 
+                    : 'text-blue-100 border-blue-700 hover:bg-blue-900/30'
+                }`}
+              >
+                {aiLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+                <span className={aiLoading ? 'opacity-0' : 'opacity-100'}>
+                  {aiLoading ? 'ANALYZING...' : 'ANALYZE'}
+                </span>
               </button>
-              <button onClick={handleSaveJournal} disabled={freeLimitHit}
-                      className={`px-8 py-4 rounded-xl font-bold tracking-widest ${freeLimitHit ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed' : 'text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30'}`}>
+              <button 
+                onClick={handleSaveJournal} 
+                disabled={freeLimitHit || !journalText.trim()}
+                className={`px-8 py-4 rounded-xl font-bold tracking-widest ${
+                  freeLimitHit || !journalText.trim() 
+                    ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed' 
+                    : 'text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30'
+                }`}
+              >
                 SAVE {dailyJournalAwarded !== todayKey() ? '(+10)' : ''}
               </button>
             </div>
@@ -682,7 +860,91 @@ const UBloomApp = () => {
   // GAMES / FRIENDS are unchanged from your base except for the product name; keep as-is…
   // (Omitted here for brevity – reuse your existing screens or the ones from the prior file.)
 
-  return null;
+  // JOURNAL HISTORY
+  if (currentScreen === 'journal-history') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" style={fontStyle}>
+        <Navigation />
+        <div className="max-w-4xl mx-auto p-8">
+          <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">JOURNAL HISTORY</h1>
+              <button 
+                onClick={() => setCurrentScreen('journal')}
+                className="text-blue-400 hover:text-blue-300 text-sm"
+              >
+                Back to Journal
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {journalHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                  <p className="text-slate-400">No journal entries yet</p>
+                </div>
+              ) : (
+                journalHistory.map((entry, index) => (
+                  <div key={index} className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/20">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-blue-100 font-semibold">{entry.date}</span>
+                      <span className="text-xs text-slate-500">{entry.text.length} characters</span>
+                    </div>
+                    <p className="text-slate-300 mb-4">{entry.text}</p>
+                    {entry.reflection && (
+                      <div className="border-t border-slate-700 pt-4">
+                        <h4 className="text-blue-100 font-semibold mb-2">AI Reflection</h4>
+                        <p className="text-slate-400 text-sm">{entry.reflection.insight}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Toast Notification */}
+        {showToast && (
+          <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl border backdrop-blur-xl transition-all duration-300 ${
+            toastType === 'success' ? 'bg-green-900/80 border-green-700 text-green-100' :
+            toastType === 'error' ? 'bg-red-900/80 border-red-700 text-red-100' :
+            'bg-blue-900/80 border-blue-700 text-blue-100'
+          }`}>
+            {toastMessage}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Toast Notification - Global */}
+      {showToast && (
+        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl border backdrop-blur-xl transition-all duration-300 ${
+          toastType === 'success' ? 'bg-green-900/80 border-green-700 text-green-100' :
+          toastType === 'error' ? 'bg-red-900/80 border-red-700 text-red-100' :
+          'bg-blue-900/80 border-blue-700 text-blue-100'
+        }`}>
+          {toastMessage}
+        </div>
+      )}
+      
+      {/* Fallback for unmatched screens */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl text-blue-100 mb-4">Screen not found</h1>
+          <button 
+            onClick={() => setCurrentScreen('dashboard')}
+            className="px-6 py-3 rounded-xl text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default UBloomApp;
