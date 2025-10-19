@@ -3,12 +3,7 @@ import {
   Home, BookOpen, Target, User, Users, Coins, Flame, Plus, X, Check,
   Sparkles, Brain, Zap, ChevronRight, Menu, Lock, Gift, Ticket, ShieldCheck, Crown, Mic, MicOff
 } from 'lucide-react';
-import Navigation from './components/Navigation';
-import Onboarding from './components/Onboarding';
-import Signup from './components/Signup';
-import Login from './components/Login';
-import AvatarSelect from './components/AvatarSelect';
-import Journal from './components/Journal';
+
 
 /**
  * UBloomApp
@@ -56,7 +51,7 @@ const UBloomApp = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [reflection, setReflection] = useState<AIReflection | null>(null);
-  const [journalHistory, setJournalHistory] = useState<{date: string, text: string, reflection?: AIReflection | null}[]>([]);
+  const [journalHistory, setJournalHistory] = useState<{id: number, date: string, text: string, reflection?: AIReflection | null}[]>([]);
   
   // Notifications & Feedback
   const [showToast, setShowToast] = useState(false);
@@ -268,35 +263,12 @@ const analyzeJournal = async () => {
 
 
 
-  const handleSignup = async () => {
+  const handleSignup = () => {
     const errors = validateSignup();
     setSignupErrors(errors);
     
     if (Object.keys(errors).length === 0) {
-      try {
-        const response = await fetch('http://127.0.0.1:5000/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            username,
-            email,
-            password,
-            avatar_id: selectedAvatar?.id || 1
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          showToastMessage('Welcome to UBloom!', 'success');
-          setCurrentScreen('dashboard');
-        } else {
-          showToastMessage(data.error || 'Registration failed', 'error');
-        }
-      } catch (error) {
-        showToastMessage('Connection error. Please try again.', 'error');
-      }
+      setCurrentScreen('avatar-select');
     }
   };
 
@@ -357,10 +329,11 @@ const analyzeJournal = async () => {
     
     // Save to local history
     setJournalHistory(prev => [{
+      id: Date.now(),
       date: today,
       text: journalText,
       reflection: reflection || undefined
-    }, ...prev.filter(entry => entry.date !== today)]);
+    }, ...prev]);
     
     setJournalCountToday(c => c + 1);
     touchDaily();
@@ -372,7 +345,11 @@ const analyzeJournal = async () => {
     } else {
       showToastMessage('Journal saved!', 'success');
     }
-    setCurrentScreen('dashboard');
+    
+    // Clear the journal text and reflection after saving
+    setJournalText('');
+    setReflection(null);
+    localStorage.removeItem('journal-draft');
   };
 
   // Add goal (respect free 5-goal daily cap)
@@ -615,49 +592,125 @@ const analyzeJournal = async () => {
     </nav>
   );
 
+  // ----- Screens (onboarding/signup/avatar kept same style—titles updated to UBLOOM) -----
+  const onboardingScreens = [
+    { title: 'UBLOOM', description: 'Your AI-powered emotional wellness companion',
+      icon: (<img src="/lotus.svg" alt="UBloom Logo" className="w-32 h-32 mx-auto mb-8" />) },
+    { title: 'Track Your Growth', description: 'Visualize emotional progress with AI insights',
+      icon: (<svg className="w-40 h-40 mx-auto mb-8" viewBox="0 0 200 200" fill="none"><circle cx="100" cy="60" r="30" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M100 90 L100 140" stroke="#60a5fa" strokeWidth="2"/><circle cx="70" cy="120" r="6" fill="#60a5fa"/><circle cx="100" cy="100" r="6" fill="#60a5fa"/><circle cx="130" cy="120" r="6" fill="#60a5fa"/><circle cx="85" cy="140" r="6" fill="#60a5fa"/><circle cx="115" cy="140" r="6" fill="#60a5fa"/></svg>) },
+    { title: 'Build Your Future', description: 'Set goals, earn rewards, evolve your avatar',
+      icon: (<svg className="w-40 h-40 mx-auto mb-8" viewBox="0 0 200 200" fill="none"><circle cx="100" cy="70" r="25" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M100 95 L100 130" stroke="#60a5fa" strokeWidth="2"/><path d="M75 110 L100 130 L125 110" stroke="#60a5fa" strokeWidth="2" fill="none"/><circle cx="70" cy="100" r="4" fill="#60a5fa"/><circle cx="130" cy="100" r="4" fill="#60a5fa"/><circle cx="85" cy="130" r="4" fill="#60a5fa"/><circle cx="115" cy="130" r="4" fill="#60a5fa"/></svg>) }
+  ] as const;
+
   if (currentScreen === 'onboarding') {
+    const s = onboardingScreens[onboardingStep];
     return (
-      <Onboarding
-        onboardingStep={onboardingStep}
-        setOnboardingStep={setOnboardingStep}
-        setCurrentScreen={setCurrentScreen}
-        fontStyle={fontStyle}
-        headerFont={headerFont}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
+        <div className="max-w-md w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-12 text-center border border-blue-800/30">
+          {s.icon}
+          <h1 className="text-4xl font-bold mb-4 text-blue-100 tracking-widest" style={headerFont}>{s.title}</h1>
+          <p className="text-slate-400 text-lg mb-12 leading-relaxed">{s.description}</p>
+          <div className="flex justify-center gap-2 mb-8">
+            {onboardingScreens.map((_, idx) => (<div key={idx} className={`h-1.5 rounded-full ${idx===onboardingStep?'w-8 bg-blue-500':'w-1.5 bg-slate-700'}`} />))}
+          </div>
+          <button onClick={() => onboardingStep < 2 ? setOnboardingStep(onboardingStep+1) : setCurrentScreen('signup')}
+                  className="w-full py-4 rounded-xl text-blue-100 font-bold text-lg border-2 border-blue-700 hover:bg-blue-900/30 transition-all duration-300 tracking-widest">
+            {onboardingStep < 2 ? 'NEXT' : 'GET STARTED'}
+          </button>
+        </div>
+      </div>
     );
   }
 
   if (currentScreen === 'signup') {
     return (
-      <Signup
-        username={username}
-        setUsername={setUsername}
-        email={email}
-        setEmail={setEmail}
-        password={password}
-        setPassword={setPassword}
-        signupErrors={signupErrors}
-        handleSignup={handleSignup}
-        setCurrentScreen={setCurrentScreen}
-        fontStyle={fontStyle}
-        headerFont={headerFont}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
+        <div className="max-w-md w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-800/30">
+          <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest" style={headerFont}>SIGN UP</h1>
+          <div className="space-y-5 mb-8">
+            <div>
+              <input 
+                type="text" 
+                placeholder="Full Name" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`w-full p-4 bg-slate-900/50 border-b-2 ${signupErrors.username ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
+              />
+              {signupErrors.username && <p className="text-red-400 text-xs mt-1">{signupErrors.username}</p>}
+            </div>
+            <div>
+              <input 
+                type="email" 
+                placeholder="Email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`w-full p-4 bg-slate-900/50 border-b-2 ${signupErrors.email ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
+              />
+              {signupErrors.email && <p className="text-red-400 text-xs mt-1">{signupErrors.email}</p>}
+            </div>
+            <div className="relative">
+              <input 
+                type="password" 
+                placeholder="Password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`w-full p-4 bg-slate-900/50 border-b-2 ${signupErrors.password ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
+              />
+              <Lock className="absolute right-4 top-4 w-5 h-5 text-slate-600" />
+              {signupErrors.password && <p className="text-red-400 text-xs mt-1">{signupErrors.password}</p>}
+            </div>
+          </div>
+          <button 
+            onClick={handleSignup}
+            className="w-full py-4 rounded-xl font-bold text-lg border-2 transition-all duration-300 tracking-widest mb-4 text-blue-100 border-blue-700 hover:bg-blue-900/30"
+          >
+            CREATE ACCOUNT
+          </button>
+          <p className="text-center text-slate-600 text-sm">Forgot your password?</p>
+          <div className="flex justify-center gap-2 mt-6"><div className="w-2 h-2 rounded-full bg-blue-500"></div><div className="w-2 h-2 rounded-full bg-slate-700"></div></div>
+        </div>
+      </div>
     );
   }
 
   if (currentScreen === 'login') {
     return (
-      <Login
-        email={email}
-        setEmail={setEmail}
-        password={password}
-        setPassword={setPassword}
-        loginErrors={loginErrors}
-        handleLogin={handleLogin}
-        setCurrentScreen={setCurrentScreen}
-        fontStyle={fontStyle}
-        headerFont={headerFont}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
+        <div className="max-w-md w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-800/30">
+          <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest" style={headerFont}>LOGIN</h1>
+          <div className="space-y-5 mb-8">
+            <div>
+              <input 
+                type="email" 
+                placeholder="Email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`w-full p-4 bg-slate-900/50 border-b-2 ${loginErrors.email ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
+              />
+              {loginErrors.email && <p className="text-red-400 text-xs mt-1">{loginErrors.email}</p>}
+            </div>
+            <div className="relative">
+              <input 
+                type="password" 
+                placeholder="Password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`w-full p-4 bg-slate-900/50 border-b-2 ${loginErrors.password ? 'border-red-500' : 'border-blue-800/50'} text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all`}
+              />
+              <Lock className="absolute right-4 top-4 w-5 h-5 text-slate-600" />
+              {loginErrors.password && <p className="text-red-400 text-xs mt-1">{loginErrors.password}</p>}
+            </div>
+          </div>
+          <button 
+            onClick={handleLogin}
+            className="w-full py-4 rounded-xl font-bold text-lg border-2 transition-all duration-300 tracking-widest mb-4 text-blue-100 border-blue-700 hover:bg-blue-900/30"
+          >
+            LOGIN
+          </button>
+          {loginErrors.general && <p className="text-red-400 text-xs text-center mb-4">{loginErrors.general}</p>}
+          <p className="text-center text-slate-600 text-sm">Don't have an account? <button onClick={() => setCurrentScreen('signup')} className="text-blue-400 hover:text-blue-300">Sign up</button></p>
+        </div>
+      </div>
     );
   }
 
@@ -665,16 +718,35 @@ const analyzeJournal = async () => {
 
   if (currentScreen === 'avatar-select') {
     return (
-      <AvatarSelect
-        avatars={avatars}
-        selectedAvatar={selectedAvatar}
-        setSelectedAvatar={setSelectedAvatar}
-        setCurrentScreen={setCurrentScreen}
-        isPremium={isPremium}
-        fontStyle={fontStyle}
-        headerFont={headerFont}
-        handleAvatarSelect={handleAvatarSelect}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4" style={fontStyle}>
+        <div className="max-w-2xl w-full bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-blue-800/30">
+          <h1 className="text-3xl font-bold text-center mb-10 text-blue-100 tracking-widest" style={headerFont}>CHOOSE AN AVATAR</h1>
+          <div className="grid grid-cols-3 gap-4 mb-10">
+            {avatars.map((a) => {
+              const locked = !isPremium && a.id > 3;
+              return (
+                <button key={a.id} onClick={() => !locked && setSelectedAvatar(a)}
+                        className={`relative bg-slate-900/50 p-6 rounded-2xl border-2 transition-all duration-300 hover:border-blue-500 ${selectedAvatar?.id===a.id?'border-blue-500 bg-blue-900/20':'border-blue-800/30'} ${locked?'opacity-50 cursor-not-allowed':''}`}
+                        title={locked ? 'Premium required' : ''}>
+                  <div className="text-5xl mb-3 text-center">{a.emoji}</div>
+                  {locked && <div className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-300">Premium</div>}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-full bg-slate-900/50 border-2 border-blue-800/30 flex items-center justify-center">
+              <img src="/lotus.svg" alt="UBloom" className="w-6 h-6" />
+            </div>
+            <span className="text-blue-100 font-bold tracking-widest" style={headerFont}>UBLOOM</span>
+          </div>
+          <button onClick={() => { if (selectedAvatar) setCurrentScreen('dashboard'); }}
+                  disabled={!selectedAvatar}
+                  className={`w-full py-4 rounded-xl font-bold text-lg tracking-widest transition-all duration-300 ${selectedAvatar ? 'border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30' : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'}`}>
+            CONTINUE
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -700,22 +772,14 @@ const analyzeJournal = async () => {
 
             {/* Avatar */}
             <div className="text-center mb-6">
-              {userAvatar ? (
-                <img
-                  src={`${userAvatar}?scene=fullbody&quality=medium`}
-                  alt="User Avatar"
-                  className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4"
-                />
-              ) : (
-                <div className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4 bg-slate-800 flex items-center justify-center text-4xl">
-                  🌸
-                </div>
-              )}
+              <div className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500 mb-4 bg-slate-800 flex items-center justify-center text-6xl">
+                {selectedAvatar ? selectedAvatar.emoji : '🌸'}
+              </div>
               <button 
                 onClick={() => setCurrentScreen('avatar-select')}
                 className="text-blue-400 hover:text-blue-300 text-sm"
               >
-                {userAvatar ? 'Change Avatar' : 'Create Avatar'}
+                Change Avatar
               </button>
             </div>
 
@@ -786,14 +850,15 @@ const analyzeJournal = async () => {
                   <button onClick={() => setCurrentScreen('journal')} className="text-blue-400 hover:text-blue-300 text-sm tracking-wider">NEW ENTRY</button>
                 </div>
               </div>
-              {journalText ? (
+              {journalHistory.length > 0 ? (
                 <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/20">
-                  <p className="text-slate-400 italic">"{journalText.substring(0, 120)}..."</p>
+                  <p className="text-slate-400 italic">"{journalHistory[0].text.substring(0, 120)}..."</p>
+                  <p className="text-slate-500 text-xs mt-2">{journalHistory[0].date}</p>
                 </div>
               ) : (
                 <div className="bg-slate-900/30 p-8 rounded-2xl border-2 border-dashed border-slate-800 text-center">
                   <BookOpen className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                  <p className="text-slate-600">No entry today</p>
+                  <p className="text-slate-600">No entries yet</p>
                 </div>
               )}
             </div>
@@ -807,7 +872,7 @@ const analyzeJournal = async () => {
                 </div>
               </div>
               <div className="space-y-3">
-                {goals.slice(0,3).map(goal => (
+                {goals.filter(g => g.status === 'active').slice(0,3).map(goal => (
                   <div key={goal.id} className={`flex items-center gap-4 p-4 rounded-xl border ${goal.status==='done'?'bg-blue-900/20 border-blue-800/50':'bg-slate-900/30 border-slate-800'}`}>
                     <span className={`flex-1 text-sm ${goal.status==='done'?'line-through text-slate-600':'text-slate-300'}`}>{goal.text}</span>
                     {goal.status==='active' && (
@@ -943,30 +1008,118 @@ const analyzeJournal = async () => {
     );
   }
 
+  // JOURNAL
   if (currentScreen === 'journal') {
+    const freeLimitHit = !isPremium && journalCountToday >= 1;
     return (
-      <Journal
-        journalText={journalText}
-        setJournalText={setJournalText}
-        journalHistory={journalHistory}
-        setCurrentScreen={setCurrentScreen}
-        analyzeJournal={analyzeJournal}
-        handleSaveJournal={handleSaveJournal}
-        showReflection={showReflection}
-        setShowReflection={setShowReflection}
-        aiLoading={aiLoading}
-        aiError={aiError}
-        reflection={reflection}
-        addGoal={addGoal}
-        isPremium={isPremium}
-        journalCountToday={journalCountToday}
-        dailyJournalAwarded={dailyJournalAwarded}
-        todayKey={todayKey}
-        fontStyle={fontStyle}
-        headerFont={headerFont}
-        currentScreen={currentScreen}
-        coins={coins}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" style={fontStyle}>
+        <Navigation />
+        <div className="max-w-4xl mx-auto p-8">
+          <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest" style={headerFont}>JOURNAL ENTRY</h1>
+              <div className="flex items-center gap-4">
+                {!isPremium && <span className="text-xs text-slate-500">Free: 1 per day</span>}
+                <div className="text-xs text-slate-500">
+                  <div>⌘+Enter to save</div>
+                  <div>⌘+Shift+A to analyze</div>
+                </div>
+              </div>
+            </div>
+            <textarea
+              value={journalText}
+              onChange={(e) => setJournalText(e.target.value)}
+              placeholder="Express your thoughts..."
+              className="w-full h-96 p-6 bg-slate-900/50 border border-blue-800/30 rounded-2xl resize-none focus:outline-none focus:border-blue-500 text-slate-300 mb-6"
+            />
+            
+            {/* Character count */}
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-xs text-slate-500">
+                {journalText.length} characters
+              </span>
+              {journalHistory.length > 0 && (
+                <button 
+                  onClick={() => setCurrentScreen('journal-history')}
+                  className="text-xs text-blue-400 hover:text-blue-300"
+                >
+                  View History ({journalHistory.length})
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button 
+                onClick={analyzeJournal}
+                disabled={!journalText.trim() || aiLoading}
+                className={`flex-1 py-4 rounded-xl font-bold border-2 transition-all tracking-widest relative ${
+                  !journalText.trim() || aiLoading 
+                    ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-slate-700' 
+                    : 'text-blue-100 border-blue-700 hover:bg-blue-900/30'
+                }`}
+              >
+                {aiLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+                <span className={aiLoading ? 'opacity-0' : 'opacity-100'}>
+                  {aiLoading ? 'ANALYZING...' : 'ANALYZE'}
+                </span>
+              </button>
+              <button 
+                onClick={handleSaveJournal} 
+                disabled={freeLimitHit || !journalText.trim()}
+                className={`px-8 py-4 rounded-xl font-bold tracking-widest ${
+                  freeLimitHit || !journalText.trim() 
+                    ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed' 
+                    : 'text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30'
+                }`}
+              >
+                SAVE {dailyJournalAwarded !== todayKey() ? '(+10)' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Reflection Modal (after ANALYZE) */}
+        {showReflection && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+            <div className="bg-slate-950/95 rounded-3xl max-w-2xl w-full p-8 border border-blue-800/30">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-blue-100">Your UBloom Reflection 💡</h2>
+                <button onClick={() => setShowReflection(false)} className="text-slate-500 hover:text-blue-400"><X className="w-6 h-6" /></button>
+              </div>
+
+              {aiLoading && <p className="text-slate-400">Analyzing…</p>}
+              {aiError && <p className="text-amber-300 text-sm mb-4">Note: {aiError}</p>}
+
+              {reflection ? (
+                <>
+                  <div className="mb-6">
+                    <h3 className="text-blue-100 font-semibold mb-2">Insight</h3>
+                    <p className="text-slate-300">{reflection.insight}</p>
+                  </div>
+                  <div className="mb-6">
+                    <h3 className="text-blue-100 font-semibold mb-2">Growth Path</h3>
+                    <p className="text-slate-300">{reflection.growth_path}</p>
+                    <button
+                      onClick={() => { addGoal(reflection.growth_path.replace(/^Try setting a mini-goal:\s*/i, '')); setShowReflection(false); }}
+                      className="mt-4 px-4 py-2 rounded-xl text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30">
+                      Set as Goal ✅
+                    </button>
+                  </div>
+                  <div className="mb-2">
+                    <h3 className="text-blue-100 font-semibold mb-2">Reflect Further</h3>
+                    <p className="text-slate-300 italic">{reflection.reflection_prompt}</p>
+                  </div>
+                </>
+              ) : (
+                !aiLoading && <p className="text-slate-400">No reflection available.</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -1139,17 +1292,17 @@ const analyzeJournal = async () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Focus Quest */}
-              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
-                <div className="text-center">
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all h-full">
+                <div className="text-center h-full flex flex-col">
                   <div className="text-4xl mb-4">🎯</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">FOCUS QUEST</h3>
-                  <p className="text-slate-400 text-sm mb-4">Train your concentration with mindful challenges</p>
-                  <div className="mb-4">
-                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
+                  <p className="text-slate-400 text-sm mb-4 h-10 flex items-center justify-center">Train your concentration with mindful challenges</p>
+                  <div className="mb-4 h-8 flex items-center justify-center">
+                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200 w-24 text-center">Free</span>
                   </div>
                   <button
                     onClick={() => setShowFocusQuest(true)}
-                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider mt-auto"
                   >
                     PLAY
                   </button>
@@ -1157,17 +1310,17 @@ const analyzeJournal = async () => {
               </div>
 
               {/* Mood Matcher */}
-              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
-                <div className="text-center">
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all h-full">
+                <div className="text-center h-full flex flex-col">
                   <div className="text-4xl mb-4">🎭</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">MOOD MATCHER</h3>
-                  <p className="text-slate-400 text-sm mb-4">Match emotions to build emotional intelligence</p>
-                  <div className="mb-4">
-                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
+                  <p className="text-slate-400 text-sm mb-4 h-10 flex items-center justify-center">Match emotions to build emotional intelligence</p>
+                  <div className="mb-4 h-8 flex items-center justify-center">
+                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200 w-24 text-center">Free</span>
                   </div>
                   <button
                     onClick={() => setShowMoodMatcher(true)}
-                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider mt-auto"
                   >
                     PLAY
                   </button>
@@ -1175,21 +1328,21 @@ const analyzeJournal = async () => {
               </div>
 
               {/* Zen Garden */}
-              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
-                <div className="text-center">
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all h-full">
+                <div className="text-center h-full flex flex-col">
                   <div className="text-4xl mb-4">🌸</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">ZEN GARDEN</h3>
-                  <p className="text-slate-400 text-sm mb-4">Relax and meditate in your virtual garden</p>
-                  <div className="mb-4">
+                  <p className="text-slate-400 text-sm mb-4 h-10 flex items-center justify-center">Relax and meditate in your virtual garden</p>
+                  <div className="mb-4 h-8 flex items-center justify-center">
                     {isPremium ? (
-                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Premium</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200 w-24 text-center">Premium</span>
                     ) : (
-                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">Premium Only</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300 w-24 text-center">Premium Only</span>
                     )}
                   </div>
                   <button
                     onClick={isPremium ? () => alert('🌸 Zen Garden opened!') : () => setShowPremium(true)}
-                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider mt-auto"
                   >
                     {isPremium ? 'ENTER' : 'UPGRADE'}
                   </button>
@@ -1197,17 +1350,17 @@ const analyzeJournal = async () => {
               </div>
 
               {/* Memory Palace */}
-              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
-                <div className="text-center">
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all h-full">
+                <div className="text-center h-full flex flex-col">
                   <div className="text-4xl mb-4">🏰</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">MEMORY PALACE</h3>
-                  <p className="text-slate-400 text-sm mb-4">Build and explore your personal memory space</p>
-                  <div className="mb-4">
-                    <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">Coming Soon</span>
+                  <p className="text-slate-400 text-sm mb-4 h-10 flex items-center justify-center">Build and explore your personal memory space</p>
+                  <div className="mb-4 h-8 flex items-center justify-center">
+                    <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300 w-24 text-center whitespace-nowrap">Coming Soon</span>
                   </div>
                   <button
                     disabled
-                    className="w-full py-3 rounded-xl bg-slate-800/50 text-slate-600 cursor-not-allowed font-bold tracking-wider"
+                    className="w-full py-3 rounded-xl bg-slate-800/50 text-slate-600 cursor-not-allowed font-bold tracking-wider mt-auto"
                   >
                     COMING SOON
                   </button>
@@ -1215,21 +1368,21 @@ const analyzeJournal = async () => {
               </div>
 
               {/* Gratitude Collector */}
-              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
-                <div className="text-center">
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all h-full">
+                <div className="text-center h-full flex flex-col">
                   <div className="text-4xl mb-4">✨</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">GRATITUDE COLLECTOR</h3>
-                  <p className="text-slate-400 text-sm mb-4">Collect and share moments of gratitude</p>
-                  <div className="mb-4">
+                  <p className="text-slate-400 text-sm mb-4 h-10 flex items-center justify-center">Collect and share moments of gratitude</p>
+                  <div className="mb-4 h-8 flex items-center justify-center">
                     {unlockedGames.includes('GRATITUDE') || isPremium ? (
-                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Unlocked</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200 w-24 text-center">Unlocked</span>
                     ) : (
-                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">200 Coins</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300 w-24 text-center">200 Coins</span>
                     )}
                   </div>
                   <button
                     onClick={unlockedGames.includes('GRATITUDE') || isPremium ? () => alert('✨ Gratitude Collector opened!') : unlockGratitudeGame}
-                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider mt-auto"
                   >
                     {unlockedGames.includes('GRATITUDE') || isPremium ? 'COLLECT' : 'UNLOCK'}
                   </button>
@@ -1237,21 +1390,21 @@ const analyzeJournal = async () => {
               </div>
 
               {/* Challenge Arena */}
-              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
-                <div className="text-center">
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all h-full">
+                <div className="text-center h-full flex flex-col">
                   <div className="text-4xl mb-4">⚔️</div>
                   <h3 className="text-blue-100 font-bold mb-2 tracking-wider">CHALLENGE ARENA</h3>
-                  <p className="text-slate-400 text-sm mb-4">Compete in wellness challenges with friends</p>
-                  <div className="mb-4">
+                  <p className="text-slate-400 text-sm mb-4 h-10 flex items-center justify-center">Compete in wellness challenges with friends</p>
+                  <div className="mb-4 h-8 flex items-center justify-center">
                     {isPremium ? (
-                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Premium</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200 w-24 text-center">Premium</span>
                     ) : (
-                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">Premium Only</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300 w-24 text-center">Premium Only</span>
                     )}
                   </div>
                   <button
                     onClick={isPremium ? () => alert('⚔️ Challenge Arena entered!') : () => setShowPremium(true)}
-                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider mt-auto"
                   >
                     {isPremium ? 'COMPETE' : 'UPGRADE'}
                   </button>
