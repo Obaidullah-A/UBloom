@@ -428,7 +428,7 @@ const analyzeJournal = async () => {
   // ----- Screens (onboarding/signup/avatar kept same style—titles updated to UBLOOM) -----
   const onboardingScreens = [
     { title: 'UBLOOM', description: 'Your AI-powered emotional wellness companion',
-      icon: (<svg className="w-32 h-32 mx-auto mb-8" viewBox="0 0 100 100" fill="none"><path d="M50 20 L35 35 L50 50 L65 35 Z" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M35 35 L35 65 L50 80" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M65 35 L65 65 L50 80" stroke="#60a5fa" strokeWidth="2" fill="none"/></svg>) },
+      icon: (<img src="/lotus.svg" alt="UBloom Logo" className="w-32 h-32 mx-auto mb-8" />) },
     { title: 'Track Your Growth', description: 'Visualize emotional progress with AI insights',
       icon: (<svg className="w-40 h-40 mx-auto mb-8" viewBox="0 0 200 200" fill="none"><circle cx="100" cy="60" r="30" stroke="#60a5fa" strokeWidth="2" fill="none"/><path d="M100 90 L100 140" stroke="#60a5fa" strokeWidth="2"/><circle cx="70" cy="120" r="6" fill="#60a5fa"/><circle cx="100" cy="100" r="6" fill="#60a5fa"/><circle cx="130" cy="120" r="6" fill="#60a5fa"/><circle cx="85" cy="140" r="6" fill="#60a5fa"/><circle cx="115" cy="140" r="6" fill="#60a5fa"/></svg>) },
     { title: 'Build Your Future', description: 'Set goals, earn rewards, evolve your avatar',
@@ -529,7 +529,7 @@ const analyzeJournal = async () => {
           </div>
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-full bg-slate-900/50 border-2 border-blue-800/30 flex items-center justify-center">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M12 4 L8 8 L12 12 L16 8 Z" stroke="#60a5fa" strokeWidth="2"/></svg>
+              <img src="/lotus.svg" alt="UBloom" className="w-6 h-6" />
             </div>
             <span className="text-blue-100 font-bold tracking-widest">UBLOOM</span>
           </div>
