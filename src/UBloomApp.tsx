@@ -464,12 +464,25 @@ const analyzeJournal = async () => {
     alert('🔥 Streak revived! Keep it going.');
   };
   const purchaseCosmetic = (item: Cosmetic) => {
-    if (isPremium) { alert('Premium has all cosmetics unlocked already.'); return; }
-    if (ownedCosmetics.includes(item.id) || freeCosmeticIds.includes(item.id)) { alert('You already own this cosmetic.'); return; }
-    if (coins < item.price) return;
+    if (isPremium) { showToastMessage('Premium has all cosmetics unlocked already.', 'info'); return; }
+    if (ownedCosmetics.includes(item.id) || freeCosmeticIds.includes(item.id)) { showToastMessage('You already own this cosmetic.', 'info'); return; }
+    if (coins < item.price) {
+      showToastMessage(`Not enough coins! You need ${item.price} coins but only have ${coins}.`, 'error');
+      return;
+    }
     setCoins(c => c - item.price);
     setOwnedCosmetics(prev => [...prev, item.id]);
-    alert(`Purchased ${item.name}!`);
+    showToastMessage(`Purchased ${item.name}!`, 'success');
+  };
+  const purchaseAvatar = (avatar: {id:number;emoji:string;name:string}, price: number) => {
+    if (isPremium) { showToastMessage('Premium has all avatars unlocked already.', 'info'); return; }
+    if (coins < price) {
+      showToastMessage(`Not enough coins! You need ${price} coins but only have ${coins}.`, 'error');
+      return;
+    }
+    setCoins(c => c - price);
+    setSelectedAvatar(avatar);
+    showToastMessage(`Purchased ${avatar.name} avatar!`, 'success');
   };
   const activatePremium = () => {
     if (isPremium) return;
@@ -739,6 +752,9 @@ const analyzeJournal = async () => {
               <img src="/lotus.svg" alt="UBloom" className="w-6 h-6" />
             </div>
             <span className="text-blue-100 font-bold tracking-widest" style={headerFont}>UBLOOM</span>
+            <div className="text-sm text-blue-200 flex items-center gap-1 ml-4">
+              <Coins className="w-4 h-4" /> {coins}
+            </div>
           </div>
           <button onClick={() => { if (selectedAvatar) setCurrentScreen('dashboard'); }}
                   disabled={!selectedAvatar}
