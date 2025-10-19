@@ -19,7 +19,7 @@ import Journal from './components/Journal';
  */
 
 type GoalStatus = 'active' | 'done' | 'skipped';
-type Goal = { id: number; text: string; status: GoalStatus; rewarded?: boolean; createdAt: string; completedAt?: string; skippedAt?: string; };
+type Goal = { id: number; text: string; status: GoalStatus; rewarded?: boolean; pointsAwarded?: boolean; createdAt: string; completedAt?: string; skippedAt?: string; };
 type Cosmetic = { id: number; name: string; icon: string; price: number };
 
 type AIReflection = {
@@ -93,6 +93,8 @@ const UBloomApp = () => {
 
   // Daily points toward mood bar (separate from coins)
   const [pointsToday, setPointsToday] = useState<number>(0);
+  const [goalsCompletedToday, setGoalsCompletedToday] = useState<number>(0);
+  const dailyGoalRewardLimit = 5;
   
   // Game modals
   const [showMoodMatcher, setShowMoodMatcher] = useState(false);
@@ -301,14 +303,22 @@ const analyzeJournal = async () => {
   const markDone = (goal: Goal) => {
     setGoals(prev => prev.map(g => {
       if (g.id !== goal.id) return g;
-      // Reward +20 only once when moving to done the first time
+      // Reward +10 only once when moving to done the first time, with daily limit
       const alreadyRewarded = g.rewarded === true;
-      if (!alreadyRewarded) { 
-        addCoins(20); 
-        addPointsToday(20);
-        showToastMessage('🎉 Goal completed! +20 coins earned', 'success');
+      let pointsAwarded = g.pointsAwarded || false;
+      
+      if (!alreadyRewarded) {
+        if (goalsCompletedToday < dailyGoalRewardLimit) {
+          addCoins(5); 
+          addPointsToday(5);
+          setGoalsCompletedToday(c => c + 1);
+          pointsAwarded = true;
+          showToastMessage('🎉 Goal completed! +5 coins earned', 'success');
+        } else {
+          showToastMessage('🎉 Goal completed! (Daily reward limit reached)', 'success');
+        }
       }
-      return { ...g, status: 'done', rewarded: true, completedAt: new Date().toISOString() };
+      return { ...g, status: 'done', rewarded: true, pointsAwarded, completedAt: new Date().toISOString() };
     }));
   };
   const markSkipped = (goal: Goal) => {
@@ -361,6 +371,7 @@ const analyzeJournal = async () => {
       if (todayKey() !== (dailyJournalAwarded ?? '').slice(0,10)) {
         setPointsToday(0);
         setJournalCountToday(0);
+        setGoalsCompletedToday(0);
       }
     }, 60000);
     return () => clearInterval(id);
@@ -594,7 +605,7 @@ const analyzeJournal = async () => {
                         <button onClick={() => markSkipped(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
                       </>
                     )}
-                    {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
+                    {goal.status==='done' && goal.pointsAwarded && <span className="text-xs text-blue-400 font-bold">+5</span>}
                   </div>
                 ))}
               </div>
@@ -828,7 +839,7 @@ const analyzeJournal = async () => {
               {history.map(goal => (
                 <div key={goal.id} className={`p-4 rounded-xl border ${goal.status==='done'?'bg-blue-900/20 border-blue-800/50':'bg-slate-900/30 border-slate-800'} flex items-center gap-3`}>
                   <span className={`flex-1 ${goal.status==='done'?'line-through text-slate-500':'text-slate-300'}`}>{goal.text}</span>
-                  {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
+                  {goal.status==='done' && goal.pointsAwarded && <span className="text-xs text-blue-400 font-bold">+5</span>}
                   <button onClick={() => markActive(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Make Active</button>
                 </div>
               ))}
