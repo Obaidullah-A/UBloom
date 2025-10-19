@@ -60,18 +60,15 @@ const UBloomApp = () => {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
 
   // Goals
-  const [goals, setGoals] = useState<Goal[]>([
-    { id: 1, text: 'Morning walk for 20 minutes', status: 'done', rewarded: true, createdAt: todayKey(), completedAt: todayKey() },
-    { id: 2, text: 'Read 10 pages', status: 'done', rewarded: true, createdAt: todayKey(), completedAt: todayKey() },
-    { id: 3, text: 'Call a friend', status: 'active', createdAt: todayKey() },
-    { id: 4, text: 'Drink 8 glasses of water', status: 'active', createdAt: todayKey() },
-    { id: 5, text: 'Meditate for 10 minutes', status: 'active', createdAt: todayKey() },
-    { id: 6, text: 'Write in gratitude journal', status: 'active', createdAt: todayKey() },
-    { id: 7, text: 'Do 20 push-ups', status: 'active', createdAt: todayKey() }
-  ]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoalText, setNewGoalText] = useState('');
   const [showGoalLimitModal, setShowGoalLimitModal] = useState(false);
   const [showGoalInput, setShowGoalInput] = useState(false);
+  const [showSkipModal, setShowSkipModal] = useState(false);
+  const [goalToSkip, setGoalToSkip] = useState<Goal | null>(null);
+  const [totalGoalsCreated, setTotalGoalsCreated] = useState(0);
+  const [dailyGoalsCreated, setDailyGoalsCreated] = useState(0);
+  const [lastGoalDate, setLastGoalDate] = useState<string | null>(null);
 
   // Economy / streaks
   const [coins, setCoins] = useState(120);
@@ -92,7 +89,7 @@ const UBloomApp = () => {
   const [insuranceUsedThisWeek, setInsuranceUsedThisWeek] = useState(false);
 
   // Daily points toward mood bar (separate from coins)
-  const [pointsToday, setPointsToday] = useState<number>(0);
+  const [pointsToday, setPointsToday] = useState<number>(50);
   
   // Game modals
   const [showMoodMatcher, setShowMoodMatcher] = useState(false);
@@ -265,11 +262,18 @@ const analyzeJournal = async () => {
     setCurrentScreen('dashboard');
   };
 
-  // Add goal (respect free 5-goal cap)
+  // Add goal (respect free 5-goal daily cap)
   const addGoal = (textFromAI?: string) => {
+    const today = todayKey();
+    
+    // Reset daily count if new day
+    if (lastGoalDate !== today) {
+      setDailyGoalsCreated(0);
+      setLastGoalDate(today);
+    }
+    
     if (!isPremium) {
-      const activeCount = goals.filter(g => g.status === 'active').length;
-      if (activeCount >= freeGoalLimit) {
+      if (dailyGoalsCreated >= freeGoalLimit) {
         setShowGoalLimitModal(true);
         return;
       }
@@ -277,6 +281,9 @@ const analyzeJournal = async () => {
     const text = textFromAI ?? newGoalText;
     if (!text.trim()) return;
     setGoals(prev => [{ id: Date.now(), text: text.trim(), status: 'active', createdAt: new Date().toISOString() }, ...prev]);
+    setTotalGoalsCreated(prev => prev + 1);
+    setDailyGoalsCreated(prev => prev + 1);
+    setLastGoalDate(today);
     setNewGoalText('');
     setShowGoalInput(false);
     // Tiny toast UX
@@ -284,16 +291,18 @@ const analyzeJournal = async () => {
   };
 
   const handlePlusClick = () => {
-    const activeCount = goals.filter(g => g.status === 'active').length;
-    console.log('Plus clicked! Active goals:', activeCount, 'Premium:', isPremium, 'Limit:', freeGoalLimit);
+    const today = todayKey();
     
-    if (!isPremium && activeCount >= freeGoalLimit) {
-      console.log('TRIGGERING MODAL - activeCount:', activeCount, 'freeGoalLimit:', freeGoalLimit);
+    // Reset daily count if new day
+    if (lastGoalDate !== today) {
+      setDailyGoalsCreated(0);
+      setLastGoalDate(today);
+    }
+    
+    if (!isPremium && dailyGoalsCreated >= freeGoalLimit) {
       setShowGoalLimitModal(true);
       return;
     }
-    
-    console.log('Showing input field');
     setShowGoalInput(true);
   };
 
@@ -311,11 +320,29 @@ const analyzeJournal = async () => {
       return { ...g, status: 'done', rewarded: true, completedAt: new Date().toISOString() };
     }));
   };
-  const markSkipped = (goal: Goal) => {
-    setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, status: 'skipped', skippedAt: new Date().toISOString() } : g));
+  const handleSkipClick = (goal: Goal) => {
+    setGoalToSkip(goal);
+    setShowSkipModal(true);
+  };
+  const confirmSkip = () => {
+    if (goalToSkip) {
+      setGoals(prev => prev.map(g => g.id === goalToSkip.id ? { ...g, status: 'skipped', skippedAt: new Date().toISOString() } : g));
+    }
+    setShowSkipModal(false);
+    setGoalToSkip(null);
   };
   const markActive = (goal: Goal) => {
-    setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, status: 'active' } : g));
+    if (coins < 20) {
+      showToastMessage('Not enough coins! You need 20 coins to reactivate a skipped goal.', 'error');
+      return;
+    }
+    
+    setCoins(c => c - 20);
+    setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, status: 'active' as GoalStatus } : g));
+    showToastMessage('Goal reactivated! -20 coins', 'info');
+  };
+  const deleteGoal = (goalId: number) => {
+    setGoals(prev => prev.filter(g => g.id !== goalId));
   };
 
   // Marketplace / Premium (unchanged behaviors)
@@ -591,7 +618,7 @@ const analyzeJournal = async () => {
                     {goal.status==='active' && (
                       <>
                         <button onClick={() => markDone(goal)} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Done</button>
-                        <button onClick={() => markSkipped(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
+                        <button onClick={() => handleSkipClick(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
                       </>
                     )}
                     {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
@@ -809,14 +836,14 @@ const analyzeJournal = async () => {
             )}
 
             {/* Active */}
-            <h2 className="text-blue-100 font-semibold mb-3">Active Goals ({activeGoals.length}{!isPremium?` / ${freeGoalLimit}`:''})</h2>
+            <h2 className="text-blue-100 font-semibold mb-3">Active Goals ({activeGoals.length}) {!isPremium && <span className="text-slate-500 text-xs">({dailyGoalsCreated}/{freeGoalLimit} created today)</span>}</h2>
             <div className="space-y-3 mb-8">
               {activeGoals.length === 0 && <div className="text-slate-600 text-sm">No active goals. Add one above!</div>}
               {activeGoals.map(goal => (
                 <div key={goal.id} className="p-4 rounded-xl bg-slate-900/30 border border-slate-800 flex items-center gap-3">
                   <span className="flex-1 text-slate-300">{goal.text}</span>
                   <button onClick={() => markDone(goal)} className="px-4 py-2 rounded-md border border-blue-700 text-blue-100 text-sm hover:bg-blue-900/30 min-w-[80px]">Done</button>
-                  <button onClick={() => markSkipped(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
+                  <button onClick={() => handleSkipClick(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Skip</button>
                 </div>
               ))}
             </div>
@@ -829,7 +856,11 @@ const analyzeJournal = async () => {
                 <div key={goal.id} className={`p-4 rounded-xl border ${goal.status==='done'?'bg-blue-900/20 border-blue-800/50':'bg-slate-900/30 border-slate-800'} flex items-center gap-3`}>
                   <span className={`flex-1 ${goal.status==='done'?'line-through text-slate-500':'text-slate-300'}`}>{goal.text}</span>
                   {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
-                  <button onClick={() => markActive(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Make Active</button>
+                  {goal.status==='done' ? (
+                    <button onClick={() => deleteGoal(goal.id)} className="px-4 py-2 rounded-md border border-red-700 text-red-300 text-sm hover:bg-red-900/30 min-w-[80px]">Delete</button>
+                  ) : (
+                    <button onClick={() => markActive(goal)} className="px-4 py-2 rounded-md border border-slate-700 text-slate-300 text-sm hover:bg-slate-800/40 min-w-[80px]">Make Active (-20 coins)</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -842,7 +873,7 @@ const analyzeJournal = async () => {
                 <div className="text-center">
                   <div className="text-4xl mb-4">⚠️</div>
                   <h2 className="text-xl font-bold text-blue-100 mb-4 tracking-widest">GOAL LIMIT REACHED</h2>
-                  <p className="text-slate-300 mb-6">You've reached the maximum of {freeGoalLimit} active goals on the free tier.</p>
+                  <p className="text-slate-300 mb-6">You've reached the maximum of {freeGoalLimit} goals per day on the free tier. Try again tomorrow or upgrade to Premium.</p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowGoalLimitModal(false)}
@@ -859,6 +890,33 @@ const analyzeJournal = async () => {
                       className="flex-1 py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
                     >
                       UPGRADE
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Skip Confirmation Modal */}
+          {showSkipModal && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+              <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-md w-full p-8 border border-blue-800/30 shadow-2xl">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">⚠️</div>
+                  <h2 className="text-xl font-bold text-blue-100 mb-4 tracking-widest">SKIP GOAL</h2>
+                  <p className="text-slate-300 mb-6">Skipping this goal will cost you 20 coins to reactivate it later. Are you sure?</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowSkipModal(false)}
+                      className="flex-1 py-3 rounded-xl border-2 border-slate-700 text-slate-300 hover:bg-slate-800/40 font-bold tracking-wider"
+                    >
+                      CANCEL
+                    </button>
+                    <button
+                      onClick={confirmSkip}
+                      className="flex-1 py-3 rounded-xl border-2 border-orange-700 text-orange-100 hover:bg-orange-900/30 font-bold tracking-wider"
+                    >
+                      SKIP
                     </button>
                   </div>
                 </div>
