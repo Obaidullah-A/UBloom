@@ -94,7 +94,7 @@ const UBloomApp = () => {
   // Daily points toward mood bar (separate from coins)
   const [pointsToday, setPointsToday] = useState<number>(0);
   const [goalsCompletedToday, setGoalsCompletedToday] = useState<number>(0);
-  const dailyGoalRewardLimit = 5;
+  const dailyGoalRewardLimit = 10;
   
   // Game modals
   const [showMoodMatcher, setShowMoodMatcher] = useState(false);
