@@ -6,6 +6,7 @@ import {
 import Navigation from './components/Navigation';
 import Onboarding from './components/Onboarding';
 import Signup from './components/Signup';
+import Login from './components/Login';
 import AvatarSelect from './components/AvatarSelect';
 import Journal from './components/Journal';
 
@@ -34,7 +35,7 @@ const todayKey = () => new Date().toISOString().slice(0,10); // YYYY-MM-DD
 
 const UBloomApp = () => {
   // Routing
-  const [currentScreen, setCurrentScreen] = useState<'onboarding'|'signup'|'avatar-select'|'dashboard'|'journal'|'goals'|'games'|'friends'|'journal-history'>('onboarding');
+  const [currentScreen, setCurrentScreen] = useState<'onboarding'|'signup'|'login'|'avatar-select'|'dashboard'|'journal'|'goals'|'games'|'friends'|'journal-history'>('onboarding');
   const [onboardingStep, setOnboardingStep] = useState(0);
 
   // Profile
@@ -43,6 +44,7 @@ const UBloomApp = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [signupErrors, setSignupErrors] = useState<{[key: string]: string}>({});
+  const [loginErrors, setLoginErrors] = useState<{[key: string]: string}>({});
   const fontStyle = { fontFamily: "'Roboto', 'Segoe UI', sans-serif" };
   const headerFont = { fontFamily: "'Neuropol X Rg', sans-serif" };
 
@@ -146,6 +148,28 @@ const UBloomApp = () => {
   const addCoins = (amt:number) => setCoins(c => c + amt);
   const addPointsToday = (amt:number) => setPointsToday(p => p + amt);
   const freeGoalLimit = 5;
+  
+  // Auto-save user progress
+  const saveProgress = async () => {
+    try {
+      await fetch('http://127.0.0.1:5000/api/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          coins,
+          streak,
+          pointsToday,
+          goalsCompletedToday,
+          journalCountToday,
+          lastActiveDate,
+          dailyJournalAwarded
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+    }
+  };
 
   // Streak bookkeeping
   const touchDaily = () => {
@@ -230,24 +254,106 @@ const analyzeJournal = async () => {
     return errors;
   };
 
-  const handleSignup = () => {
+  const validateLogin = () => {
+    const errors: {[key: string]: string} = {};
+    
+    if (!email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    if (!password.trim()) errors.password = 'Password is required';
+    
+    return errors;
+  };
+
+  const handleSignup = async () => {
     const errors = validateSignup();
     setSignupErrors(errors);
     
     if (Object.keys(errors).length === 0) {
-      setCurrentScreen('avatar-select');
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            username,
+            email,
+            password,
+            avatar_id: selectedAvatar?.id || 1
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Skip avatar selection and go straight to dashboard
+          showToastMessage('Welcome to UBloom!', 'success');
+          setCurrentScreen('dashboard');
+        } else {
+          showToastMessage(data.error || 'Registration failed', 'error');
+        }
+      } catch (error) {
+        showToastMessage('Connection error. Please try again.', 'error');
+      }
+    }
+  };
+
+  const handleLogin = async () => {
+    const errors = validateLogin();
+    setLoginErrors(errors);
+    
+    if (Object.keys(errors).length === 0) {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          setUsername(data.username);
+          setCoins(data.coins);
+          setStreak(data.streak);
+          showToastMessage('Welcome back!', 'success');
+          setCurrentScreen('dashboard');
+        } else {
+          setLoginErrors({ general: data.error || 'Login failed' });
+        }
+      } catch (error) {
+        setLoginErrors({ general: 'Connection error. Please try again.' });
+      }
     }
   };
 
   // SAVE (awards +10 once/day, increments pointsToday)
-  const handleSaveJournal = () => {
+  const handleSaveJournal = async () => {
     const today = todayKey();
     if (!isPremium && journalCountToday >= 1) {
       showToastMessage('Free tier: 1 journal/day. Upgrade to Premium for unlimited journals.', 'error');
       return;
     }
     
-    // Save to history
+    // Save to database
+    try {
+      await fetch('http://127.0.0.1:5000/api/save-journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          text: journalText,
+          reflection: reflection
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save journal:', error);
+    }
+    
+    // Save to local history
     setJournalHistory(prev => [{
       date: today,
       text: journalText,
@@ -268,7 +374,7 @@ const analyzeJournal = async () => {
   };
 
   // Add goal (respect free 5-goal cap)
-  const addGoal = (textFromAI?: string) => {
+  const addGoal = async (textFromAI?: string) => {
     if (!isPremium) {
       const activeCount = goals.filter(g => g.status === 'active').length;
       if (activeCount >= freeGoalLimit) {
@@ -278,7 +384,25 @@ const analyzeJournal = async () => {
     }
     const text = textFromAI ?? newGoalText;
     if (!text.trim()) return;
-    setGoals(prev => [{ id: Date.now(), text: text.trim(), status: 'active', createdAt: new Date().toISOString() }, ...prev]);
+    
+    const newGoal: Goal = { id: Date.now(), text: text.trim(), status: 'active' as GoalStatus, createdAt: new Date().toISOString() };
+    
+    // Save to database
+    try {
+      await fetch('http://127.0.0.1:5000/api/save-goal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          text: newGoal.text,
+          status: newGoal.status
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save goal:', error);
+    }
+    
+    setGoals(prev => [newGoal, ...prev]);
     setNewGoalText('');
     setShowGoalInput(false);
     // Tiny toast UX
@@ -395,6 +519,12 @@ const analyzeJournal = async () => {
     }
   }, []);
 
+  // Auto-save progress periodically
+  useEffect(() => {
+    const interval = setInterval(saveProgress, 30000); // Save every 30 seconds
+    return () => clearInterval(interval);
+  }, [coins, streak, pointsToday, goalsCompletedToday, journalCountToday, lastActiveDate, dailyJournalAwarded]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -468,6 +598,23 @@ const analyzeJournal = async () => {
         setPassword={setPassword}
         signupErrors={signupErrors}
         handleSignup={handleSignup}
+        setCurrentScreen={setCurrentScreen}
+        fontStyle={fontStyle}
+        headerFont={headerFont}
+      />
+    );
+  }
+
+  if (currentScreen === 'login') {
+    return (
+      <Login
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        loginErrors={loginErrors}
+        handleLogin={handleLogin}
+        setCurrentScreen={setCurrentScreen}
         fontStyle={fontStyle}
         headerFont={headerFont}
       />

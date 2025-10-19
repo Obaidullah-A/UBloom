@@ -1,11 +1,13 @@
 # app.py
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from kronoslabs import KronosLabs, APIError, AuthenticationError
 from dotenv import load_dotenv
 import os
 import json
+import hashlib
+from database import db
 
 # --- Configuration & Initialization ---
 
@@ -13,8 +15,9 @@ import json
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = 'ubloom-secret-key-change-in-production'
 # Enable CORS for development: allows your React frontend (on a different port) to access this API
-CORS(app) 
+CORS(app, supports_credentials=True) 
 
 KRONOS_API_KEY = os.getenv("KRONOS_API_KEY")
 
@@ -60,7 +63,148 @@ OUTPUT FORMAT:
 USER JOURNAL ENTRY FOR ANALYSIS:
 """
 
-# --- API Endpoint ---
+# --- API Endpoints ---
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    email = data.get('email', '').strip()
+    password = data.get('password', '').strip()
+    avatar_id = data.get('avatar_id', 1)
+    
+    if not username or not email or not password:
+        return jsonify({"error": "All fields are required"}), 400
+    
+    # Hash password
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    # Create user
+    user_id = db.create_user(username, email, password_hash, avatar_id)
+    
+    if user_id is None:
+        return jsonify({"error": "Email already exists"}), 400
+    
+    # Set session
+    session['user_id'] = user_id
+    session['username'] = username
+    
+    return jsonify({
+        "success": True,
+        "user_id": user_id,
+        "username": username
+    }), 200
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email', '').strip()
+    password = data.get('password', '').strip()
+    
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+    
+    user = db.get_user_by_email(email)
+    if not user:
+        return jsonify({"error": "Invalid credentials"}), 401
+    
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    if user[3] != password_hash:  # password_hash is at index 3
+        return jsonify({"error": "Invalid credentials"}), 401
+    
+    # Set session
+    session['user_id'] = user[0]
+    session['username'] = user[1]
+    
+    return jsonify({
+        "success": True,
+        "user_id": user[0],
+        "username": user[1],
+        "avatar_id": user[4],
+        "coins": user[6],
+        "streak": user[7]
+    }), 200
+
+@app.route('/api/save-progress', methods=['POST'])
+def save_progress():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    user_id = session['user_id']
+    
+    # Update user stats
+    user_stats = {
+        'coins': data.get('coins', 0),
+        'streak': data.get('streak', 0),
+        'points_today': data.get('pointsToday', 0),
+        'goals_completed_today': data.get('goalsCompletedToday', 0),
+        'journal_count_today': data.get('journalCountToday', 0),
+        'last_active_date': data.get('lastActiveDate'),
+        'daily_journal_awarded': data.get('dailyJournalAwarded')
+    }
+    
+    db.update_user_stats(user_id, **user_stats)
+    
+    return jsonify({"success": True}), 200
+
+@app.route('/api/save-goal', methods=['POST'])
+def save_goal():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    user_id = session['user_id']
+    
+    goal_id = db.save_goal(
+        user_id=user_id,
+        text=data.get('text', ''),
+        status=data.get('status', 'active'),
+        rewarded=data.get('rewarded', False),
+        points_awarded=data.get('pointsAwarded', False)
+    )
+    
+    return jsonify({"success": True, "goal_id": goal_id}), 200
+
+@app.route('/api/update-goal', methods=['POST'])
+def update_goal():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    goal_id = data.get('goal_id')
+    
+    updates = {}
+    if 'status' in data:
+        updates['status'] = data['status']
+    if 'rewarded' in data:
+        updates['rewarded'] = data['rewarded']
+    if 'points_awarded' in data:
+        updates['points_awarded'] = data['points_awarded']
+    if 'completed_at' in data:
+        updates['completed_at'] = data['completed_at']
+    if 'skipped_at' in data:
+        updates['skipped_at'] = data['skipped_at']
+    
+    db.update_goal(goal_id, **updates)
+    
+    return jsonify({"success": True}), 200
+
+@app.route('/api/save-journal', methods=['POST'])
+def save_journal():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    user_id = session['user_id']
+    
+    entry_id = db.save_journal_entry(
+        user_id=user_id,
+        text=data.get('text', ''),
+        reflection_data=data.get('reflection')
+    )
+    
+    return jsonify({"success": True, "entry_id": entry_id}), 200
 
 @app.route('/api/reflect', methods=['POST'])
 def reflect():
@@ -122,6 +266,12 @@ if __name__ == '__main__':
     print("       STARTING UBLOOM PYTHON BACKEND")
     print("------------------------------------------------")
     print("AI Engine Status: Active" if client is not None else "AI Engine Status: FAILED TO AUTHENTICATE")
-    print("Access URL: http://127.0.0.1:5000/api/reflect")
+    print("Access URLs:")
+    print("  - Registration: http://127.0.0.1:5000/api/register")
+    print("  - Login: http://127.0.0.1:5000/api/login")
+    print("  - AI Reflection: http://127.0.0.1:5000/api/reflect")
+    print("  - Save Progress: http://127.0.0.1:5000/api/save-progress")
+    print("  - Save Goal: http://127.0.0.1:5000/api/save-goal")
+    print("  - Save Journal: http://127.0.0.1:5000/api/save-journal")
     print("------------------------------------------------")
     app.run(port=5000, debug=True)
