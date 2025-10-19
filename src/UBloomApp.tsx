@@ -89,6 +89,9 @@ const UBloomApp = () => {
   // Daily points toward mood bar (separate from coins)
   const [pointsToday, setPointsToday] = useState<number>(0);
   
+  // Game modals
+  const [showMoodMatcher, setShowMoodMatcher] = useState(false);
+  
   // Progress tracking
   const [emotionHistory, setEmotionHistory] = useState<{date: string, emotion: string, score: number}[]>([
     {date: '2024-01-01', emotion: 'Happy', score: 8},
@@ -1071,7 +1074,7 @@ const analyzeJournal = async () => {
                     <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
                   </div>
                   <button
-                    onClick={() => alert('🎭 Mood Matcher launched!')}
+                    onClick={() => setShowMoodMatcher(true)}
                     className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
                   >
                     PLAY
@@ -1161,6 +1164,28 @@ const analyzeJournal = async () => {
             </div>
           </div>
         </div>
+        
+        {/* Mood Matcher Game Modal */}
+        {showMoodMatcher && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-2xl w-full h-[600px] border border-blue-800/30 relative overflow-hidden">
+              <div className="flex justify-between items-center p-6 border-b border-blue-800/30">
+                <h2 className="text-xl font-bold text-blue-100 tracking-widest">🎭 MOOD MATCHER</h2>
+                <button onClick={() => setShowMoodMatcher(false)} className="text-slate-500 hover:text-blue-400">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="h-full">
+                <iframe
+                  srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Breathe & Balance</title><style>:root{--bg-start:#cc2b2b;--bg-end:#b482ff;--text:#ffffff;--muted:#ffffffcc}*{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);overflow:hidden;transition:background 600ms linear;background:linear-gradient(180deg,var(--bg-start),var(--bg-end))}.wrap{display:grid;grid-template-rows:auto 1fr auto;place-items:center;height:100%;padding:16px}h1{margin:8px 0 4px;font-size:clamp(20px,3.6vw,28px)}p{margin:0;color:var(--muted)}.stage{position:relative;width:min(560px,92vw);aspect-ratio:1/1;display:grid;place-items:center}.bubble{width:30vmin;height:30vmin;min-width:180px;min-height:180px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffffffee,#ffffff99 55%,#ffffff10 75%,#ffffff00 90%);box-shadow:0 10px 40px #00000033,inset 0 0 30px #ffffff55;transform:scale(0.6);transition:transform 2s ease,filter 0.2s ease;cursor:pointer;user-select:none}.bubble.active{filter:brightness(1.08) saturate(1.05)}.hud{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:8px}.card{background:#ffffff22;backdrop-filter:blur(8px);border:1px solid #ffffff3a;border-radius:14px;padding:10px 14px;min-width:180px}.label{font-size:12px;text-transform:uppercase;color:var(--muted)}.value{font-weight:700;font-size:20px}.meter{height:10px;background:#ffffff2a;border-radius:999px;overflow:hidden;margin-top:8px}.meter span{display:block;height:100%;width:0%;background:#fff;transition:width 0.2s ease}.controls{display:flex;gap:10px;margin-top:8px;justify-content:center;flex-wrap:wrap}button{appearance:none;border-radius:12px;padding:10px 14px;border:1px solid #ffffff3a;color:#fff;background:#ffffff22;cursor:pointer}button:hover{background:#ffffff33}</style></head><body><div class="wrap"><h1>🌬️ Breathe & Balance</h1><p>Click or tap and hold to inhale — release to exhale.</p><div class="stage"><div id="bubble" class="bubble"></div></div><div class="hud"><div class="card"><div class="label">Score</div><div class="value" id="score">0</div></div><div class="card" style="min-width:260px"><div class="label">Calm</div><div class="meter"><span id="calm"></span></div></div></div><div class="controls"><button id="reset">Reset</button></div></div><script>const bubble=document.getElementById('bubble');const scoreEl=document.getElementById('score');const calmEl=document.getElementById('calm');const resetBtn=document.getElementById('reset');let hold=false,score=0,calm=0;let animationId;function mixColor(calm){const start=[204,43,43],end=[180,130,255];const mix=(a,b,t)=>Math.round(a+(b-a)*t);document.body.style.background='linear-gradient(180deg,rgb('+mix(start[0],end[0],calm)+','+mix(start[1],end[1],calm)+','+mix(start[2],end[2],calm)+'),rgb('+mix(start[0],240,calm)+','+mix(start[1],240,calm)+','+mix(start[2],255,calm)+'))'}function updateBubble(){bubble.style.transform='scale('+(hold?1.2:0.6)+')';bubble.classList.toggle('active',hold);if(hold){score+=0.2;calm=Math.min(1,calm+0.005)}else{calm=Math.max(0,calm-0.001)}scoreEl.textContent=Math.round(score);calmEl.style.width=(calm*100)+'%';mixColor(calm);animationId=requestAnimationFrame(updateBubble)}function setHold(val){hold=val}bubble.addEventListener('mousedown',function(e){e.preventDefault();setHold(true)});bubble.addEventListener('mouseup',function(e){e.preventDefault();setHold(false)});bubble.addEventListener('mouseleave',function(e){setHold(false)});bubble.addEventListener('touchstart',function(e){e.preventDefault();setHold(true)});bubble.addEventListener('touchend',function(e){e.preventDefault();setHold(false)});bubble.addEventListener('touchcancel',function(e){e.preventDefault();setHold(false)});document.addEventListener('mouseup',function(){setHold(false)});resetBtn.addEventListener('click',function(){score=0;calm=0;hold=false;scoreEl.textContent='0';calmEl.style.width='0%';bubble.style.transform='scale(0.6)';bubble.classList.remove('active');mixColor(0)});updateBubble();</script></body></html>`}
+                  className="w-full h-full border-none"
+                  sandbox="allow-scripts"
+                  title="Mood Matcher Game"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
