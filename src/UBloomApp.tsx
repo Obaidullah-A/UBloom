@@ -47,8 +47,15 @@ const UBloomApp = () => {
   const [goals, setGoals] = useState<Goal[]>([
     { id: 1, text: 'Morning walk for 20 minutes', status: 'done', rewarded: true, createdAt: todayKey(), completedAt: todayKey() },
     { id: 2, text: 'Read 10 pages', status: 'done', rewarded: true, createdAt: todayKey(), completedAt: todayKey() },
-    { id: 3, text: 'Call a friend', status: 'active', createdAt: todayKey() }
+    { id: 3, text: 'Call a friend', status: 'active', createdAt: todayKey() },
+    { id: 4, text: 'Drink 8 glasses of water', status: 'active', createdAt: todayKey() },
+    { id: 5, text: 'Meditate for 10 minutes', status: 'active', createdAt: todayKey() },
+    { id: 6, text: 'Write in gratitude journal', status: 'active', createdAt: todayKey() },
+    { id: 7, text: 'Do 20 push-ups', status: 'active', createdAt: todayKey() }
   ]);
+  const [newGoalText, setNewGoalText] = useState('');
+  const [showGoalLimitModal, setShowGoalLimitModal] = useState(false);
+  const [showGoalInput, setShowGoalInput] = useState(false);
 
   // Economy / streaks
   const [coins, setCoins] = useState(120);
@@ -164,15 +171,31 @@ const UBloomApp = () => {
     if (!isPremium) {
       const activeCount = goals.filter(g => g.status === 'active').length;
       if (activeCount >= freeGoalLimit) {
-        alert(`Free tier: up to ${freeGoalLimit} active goals. Upgrade to Premium for unlimited goals.`);
+        setShowGoalLimitModal(true);
         return;
       }
     }
-    const text = textFromAI ?? prompt('New goal') ?? '';
+    const text = textFromAI ?? newGoalText;
     if (!text.trim()) return;
     setGoals(prev => [{ id: Date.now(), text: text.trim(), status: 'active', createdAt: new Date().toISOString() }, ...prev]);
+    setNewGoalText('');
+    setShowGoalInput(false);
     // Tiny toast UX
     if (textFromAI) alert('✨ Mini-goal added to your Active Goals!');
+  };
+
+  const handlePlusClick = () => {
+    const activeCount = goals.filter(g => g.status === 'active').length;
+    console.log('Plus clicked! Active goals:', activeCount, 'Premium:', isPremium, 'Limit:', freeGoalLimit);
+    
+    if (!isPremium && activeCount >= freeGoalLimit) {
+      console.log('TRIGGERING MODAL - activeCount:', activeCount, 'freeGoalLimit:', freeGoalLimit);
+      setShowGoalLimitModal(true);
+      return;
+    }
+    
+    console.log('Showing input field');
+    setShowGoalInput(true);
   };
 
   // Goal actions
@@ -258,12 +281,12 @@ const UBloomApp = () => {
         <div className="text-sm text-blue-200 flex items-center gap-1">
           <Coins className="w-4 h-4" /> {coins}
         </div>
-        <button onClick={() => setCurrentScreen('dashboard')} className={`p-3 rounded-lg ${currentScreen==='dashboard'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Home className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('journal')} className={`p-3 rounded-lg ${currentScreen==='journal'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><BookOpen className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('goals')} className={`p-3 rounded-lg ${currentScreen==='goals'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Target className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('games')} className={`p-3 rounded-lg ${currentScreen==='games'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Zap className="w-5 h-5" /></button>
-        <button onClick={() => setCurrentScreen('friends')} className={`p-3 rounded-lg ${currentScreen==='friends'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Users className="w-5 h-5" /></button>
-        <button onClick={() => setShowPremium(true)} className="p-3 rounded-lg text-slate-500 hover:text-blue-400" aria-label="Premium"><Sparkles className="w-5 h-5" /></button>
+        <button onClick={() => { setCurrentScreen('dashboard'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='dashboard'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Home className="w-5 h-5" /></button>
+        <button onClick={() => { setCurrentScreen('journal'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='journal'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><BookOpen className="w-5 h-5" /></button>
+        <button onClick={() => { setCurrentScreen('goals'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='goals'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Target className="w-5 h-5" /></button>
+        <button onClick={() => { setCurrentScreen('games'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='games'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Zap className="w-5 h-5" /></button>
+        <button onClick={() => { setCurrentScreen('friends'); setShowPremium(false); }} className={`p-3 rounded-lg ${currentScreen==='friends'?'bg-blue-900/30 text-blue-400':'text-slate-500 hover:text-blue-400'}`}><Users className="w-5 h-5" /></button>
+        <button onClick={() => { setCurrentScreen('dashboard'); setShowPremium(true); }} className="p-3 rounded-lg text-slate-500 hover:text-blue-400" aria-label="Premium"><Sparkles className="w-5 h-5" /></button>
       </div>
     </nav>
   );
@@ -310,7 +333,6 @@ const UBloomApp = () => {
               <input type="password" placeholder="Password" className="w-full p-4 bg-slate-900/50 border-b-2 border-blue-800/50 text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all" />
               <Lock className="absolute right-4 top-4 w-5 h-5 text-slate-600" />
             </div>
-            <input type="text" placeholder="Account Access" className="w-full p-4 bg-slate-900/50 border-b-2 border-blue-800/50 text-blue-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-all" />
           </div>
           <button onClick={() => setCurrentScreen('avatar-select')} className="w-full py-4 rounded-xl text-blue-100 font-bold text-lg border-2 border-blue-700 hover:bg-blue-900/30 transition-all duration-300 tracking-widest mb-4">CREATE ACCOUNT</button>
           <p className="text-center text-slate-600 text-sm">Forgot your password?</p>
@@ -433,7 +455,6 @@ const UBloomApp = () => {
                 <h3 className="text-xl font-bold text-blue-100 tracking-widest">GOALS</h3>
                 <div className="flex items-center gap-3">
                   {!isPremium && <span className="text-xs text-slate-500">Free: up to {freeGoalLimit} active goals</span>}
-                  <button className="text-slate-500 hover:text-blue-400" onClick={() => addGoal()}><Plus className="w-6 h-6" /></button>
                 </div>
               </div>
               <div className="space-y-3">
@@ -541,6 +562,33 @@ const UBloomApp = () => {
           </div>
         )}
 
+        {/* Goal Limit Modal */}
+        {showGoalLimitModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+            <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-md w-full p-8 border border-blue-800/30 shadow-2xl">
+              <div className="text-center">
+                <div className="text-4xl mb-4">⚠️</div>
+                <h2 className="text-xl font-bold text-blue-100 mb-4 tracking-widest">GOAL LIMIT REACHED</h2>
+                <p className="text-slate-300 mb-6">You've reached the maximum of {freeGoalLimit} active goals on the free tier.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowGoalLimitModal(false)}
+                    className="flex-1 py-3 rounded-xl border-2 border-slate-700 text-slate-300 hover:bg-slate-800/40 font-bold tracking-wider"
+                  >
+                    OK
+                  </button>
+                  <button
+                    onClick={() => { setShowGoalLimitModal(false); setShowPremium(true); }}
+                    className="flex-1 py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                  >
+                    UPGRADE
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Reflection Modal (after ANALYZE) */}
         {showReflection && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
@@ -630,7 +678,7 @@ const UBloomApp = () => {
               <h1 className="text-2xl font-bold text-blue-100 tracking-widest">GOALS</h1>
               <div className="flex items-center gap-4">
                 <div className="text-sm text-blue-200 flex items-center gap-1"><Coins className="w-4 h-4" /> {coins}</div>
-                <button className="text-blue-400 hover:text-blue-300" onClick={() => addGoal()}><Plus className="w-6 h-6" /></button>
+                <button className="text-blue-400 hover:text-blue-300" onClick={handlePlusClick}><Plus className="w-6 h-6" /></button>
               </div>
             </div>
 
@@ -648,10 +696,39 @@ const UBloomApp = () => {
               </div>
             </div>
 
+            {/* Add New Goal */}
+            {showGoalInput && (
+              <div className="mb-6">
+                <input
+                  type="text"
+                  value={newGoalText}
+                  onChange={(e) => setNewGoalText(e.target.value)}
+                  placeholder="Enter a new goal..."
+                  className="w-full p-3 bg-slate-900/50 border border-blue-800/30 rounded-xl text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && newGoalText.trim()) {
+                      addGoal();
+                    } else if (e.key === 'Escape') {
+                      setShowGoalInput(false);
+                      setNewGoalText('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (newGoalText.trim()) {
+                      addGoal();
+                    } else {
+                      setShowGoalInput(false);
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+            )}
+
             {/* Active */}
             <h2 className="text-blue-100 font-semibold mb-3">Active Goals ({activeGoals.length}{!isPremium?` / ${freeGoalLimit}`:''})</h2>
             <div className="space-y-3 mb-8">
-              {activeGoals.length === 0 && <div className="text-slate-600 text-sm">No active goals. Add one!</div>}
+              {activeGoals.length === 0 && <div className="text-slate-600 text-sm">No active goals. Add one above!</div>}
               {activeGoals.map(goal => (
                 <div key={goal.id} className="p-4 rounded-xl bg-slate-900/30 border border-slate-800 flex items-center gap-3">
                   <span className="flex-1 text-slate-300">{goal.text}</span>
@@ -674,13 +751,322 @@ const UBloomApp = () => {
               ))}
             </div>
           </div>
+
+          {/* Goal Limit Modal */}
+          {showGoalLimitModal && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+              <div className="bg-slate-950/95 backdrop-blur-xl rounded-3xl max-w-md w-full p-8 border border-blue-800/30 shadow-2xl">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">⚠️</div>
+                  <h2 className="text-xl font-bold text-blue-100 mb-4 tracking-widest">GOAL LIMIT REACHED</h2>
+                  <p className="text-slate-300 mb-6">You've reached the maximum of {freeGoalLimit} active goals on the free tier.</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowGoalLimitModal(false)}
+                      className="flex-1 py-3 rounded-xl border-2 border-slate-700 text-slate-300 hover:bg-slate-800/40 font-bold tracking-wider"
+                    >
+                      OK
+                    </button>
+                    <button
+                      onClick={() => { 
+                        setShowGoalLimitModal(false); 
+                        setCurrentScreen('dashboard');
+                        setShowPremium(true); 
+                      }}
+                      className="flex-1 py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                    >
+                      UPGRADE
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // GAMES / FRIENDS are unchanged from your base except for the product name; keep as-is…
-  // (Omitted here for brevity – reuse your existing screens or the ones from the prior file.)
+  // GAMES
+  if (currentScreen === 'games') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" style={fontStyle}>
+        <Navigation />
+        <div className="max-w-6xl mx-auto p-8">
+          <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">GAMES</h1>
+              <div className="text-sm text-blue-200 flex items-center gap-1">
+                <Coins className="w-4 h-4" /> {coins}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Focus Quest */}
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">🎯</div>
+                  <h3 className="text-blue-100 font-bold mb-2 tracking-wider">FOCUS QUEST</h3>
+                  <p className="text-slate-400 text-sm mb-4">Train your concentration with mindful challenges</p>
+                  <div className="mb-4">
+                    {unlockedGames.includes('FOCUS') || isPremium ? (
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Unlocked</span>
+                    ) : (
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">200 Coins</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={unlockedGames.includes('FOCUS') || isPremium ? () => alert('🎯 Focus Quest launched!') : unlockFocusGame}
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                  >
+                    {unlockedGames.includes('FOCUS') || isPremium ? 'PLAY' : 'UNLOCK'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mood Matcher */}
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">🎭</div>
+                  <h3 className="text-blue-100 font-bold mb-2 tracking-wider">MOOD MATCHER</h3>
+                  <p className="text-slate-400 text-sm mb-4">Match emotions to build emotional intelligence</p>
+                  <div className="mb-4">
+                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
+                  </div>
+                  <button
+                    onClick={() => alert('🎭 Mood Matcher launched!')}
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                  >
+                    PLAY
+                  </button>
+                </div>
+              </div>
+
+              {/* Zen Garden */}
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">🌸</div>
+                  <h3 className="text-blue-100 font-bold mb-2 tracking-wider">ZEN GARDEN</h3>
+                  <p className="text-slate-400 text-sm mb-4">Relax and meditate in your virtual garden</p>
+                  <div className="mb-4">
+                    {isPremium ? (
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Premium</span>
+                    ) : (
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">Premium Only</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={isPremium ? () => alert('🌸 Zen Garden opened!') : () => setShowPremium(true)}
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                  >
+                    {isPremium ? 'ENTER' : 'UPGRADE'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Memory Palace */}
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">🏰</div>
+                  <h3 className="text-blue-100 font-bold mb-2 tracking-wider">MEMORY PALACE</h3>
+                  <p className="text-slate-400 text-sm mb-4">Build and explore your personal memory space</p>
+                  <div className="mb-4">
+                    <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">Coming Soon</span>
+                  </div>
+                  <button
+                    disabled
+                    className="w-full py-3 rounded-xl bg-slate-800/50 text-slate-600 cursor-not-allowed font-bold tracking-wider"
+                  >
+                    COMING SOON
+                  </button>
+                </div>
+              </div>
+
+              {/* Gratitude Collector */}
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">✨</div>
+                  <h3 className="text-blue-100 font-bold mb-2 tracking-wider">GRATITUDE COLLECTOR</h3>
+                  <p className="text-slate-400 text-sm mb-4">Collect and share moments of gratitude</p>
+                  <div className="mb-4">
+                    <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Free</span>
+                  </div>
+                  <button
+                    onClick={() => alert('✨ Gratitude Collector opened!')}
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                  >
+                    COLLECT
+                  </button>
+                </div>
+              </div>
+
+              {/* Challenge Arena */}
+              <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-800/30 hover:border-blue-500 transition-all">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">⚔️</div>
+                  <h3 className="text-blue-100 font-bold mb-2 tracking-wider">CHALLENGE ARENA</h3>
+                  <p className="text-slate-400 text-sm mb-4">Compete in wellness challenges with friends</p>
+                  <div className="mb-4">
+                    {isPremium ? (
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-900/50 border border-blue-700 text-blue-200">Premium</span>
+                    ) : (
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300">Premium Only</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={isPremium ? () => alert('⚔️ Challenge Arena entered!') : () => setShowPremium(true)}
+                    className="w-full py-3 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider"
+                  >
+                    {isPremium ? 'COMPETE' : 'UPGRADE'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // FRIENDS
+  if (currentScreen === 'friends') {
+    const mockFriends = [
+      { id: 1, name: 'Alex Chen', avatar: '😊', status: 'online', streak: 12, lastActive: '2 min ago' },
+      { id: 2, name: 'Maya Patel', avatar: '🌟', status: 'away', streak: 8, lastActive: '1 hour ago' },
+      { id: 3, name: 'Jordan Kim', avatar: '🎯', status: 'offline', streak: 15, lastActive: '3 hours ago' },
+      { id: 4, name: 'Sam Rivera', avatar: '🌸', status: 'online', streak: 5, lastActive: 'Just now' }
+    ];
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" style={fontStyle}>
+        <Navigation />
+        <div className="max-w-4xl mx-auto p-8">
+          <div className="bg-slate-950/90 backdrop-blur-xl rounded-3xl p-10 border border-blue-800/30">
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-2xl font-bold text-blue-100 tracking-widest">FRIENDS</h1>
+              <button className="px-4 py-2 rounded-xl border-2 border-blue-700 text-blue-100 hover:bg-blue-900/30 font-bold tracking-wider">
+                ADD FRIEND
+              </button>
+            </div>
+
+            {/* Friend Requests */}
+            <div className="mb-8">
+              <h2 className="text-blue-100 font-semibold mb-4">Friend Requests (2)</h2>
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl bg-slate-900/30 border border-blue-800/30 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl">🤖</div>
+                    <div>
+                      <div className="text-slate-300 font-medium">Riley Thompson</div>
+                      <div className="text-slate-500 text-sm">Mutual friend: Alex Chen</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="px-3 py-2 rounded-md border border-blue-700 text-blue-100 text-xs hover:bg-blue-900/30">Accept</button>
+                    <button className="px-3 py-2 rounded-md border border-slate-700 text-slate-300 text-xs hover:bg-slate-800/40">Decline</button>
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-900/30 border border-blue-800/30 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl">🎨</div>
+                    <div>
+                      <div className="text-slate-300 font-medium">Casey Morgan</div>
+                      <div className="text-slate-500 text-sm">From UBloom Community</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="px-3 py-2 rounded-md border border-blue-700 text-blue-100 text-xs hover:bg-blue-900/30">Accept</button>
+                    <button className="px-3 py-2 rounded-md border border-slate-700 text-slate-300 text-xs hover:bg-slate-800/40">Decline</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Friends List */}
+            <div>
+              <h2 className="text-blue-100 font-semibold mb-4">Friends ({mockFriends.length})</h2>
+              <div className="space-y-3">
+                {mockFriends.map(friend => (
+                  <div key={friend.id} className="p-4 rounded-xl bg-slate-900/30 border border-slate-800 hover:border-blue-800/50 transition-all flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <div className="text-2xl">{friend.avatar}</div>
+                        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-slate-900 ${
+                          friend.status === 'online' ? 'bg-green-500' : 
+                          friend.status === 'away' ? 'bg-yellow-500' : 'bg-slate-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <div className="text-slate-300 font-medium">{friend.name}</div>
+                        <div className="text-slate-500 text-sm flex items-center gap-3">
+                          <span>{friend.lastActive}</span>
+                          <span className="flex items-center gap-1">
+                            <Flame className="w-3 h-3" />
+                            {friend.streak} day streak
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-2 rounded-md border border-blue-700 text-blue-100 text-xs hover:bg-blue-900/30">Message</button>
+                      <button className="px-3 py-2 rounded-md border border-slate-700 text-slate-300 text-xs hover:bg-slate-800/40">Challenge</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Leaderboard */}
+            <div className="mt-8">
+              <h2 className="text-blue-100 font-semibold mb-4">Weekly Leaderboard</h2>
+              <div className="bg-slate-900/30 rounded-xl border border-slate-800 overflow-hidden">
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-xl">🥇</div>
+                    <div>
+                      <div className="text-slate-300 font-medium">Jordan Kim</div>
+                      <div className="text-slate-500 text-sm">15 day streak</div>
+                    </div>
+                  </div>
+                  <div className="text-blue-400 font-bold">2,450 pts</div>
+                </div>
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-xl">🥈</div>
+                    <div>
+                      <div className="text-slate-300 font-medium">Alex Chen</div>
+                      <div className="text-slate-500 text-sm">12 day streak</div>
+                    </div>
+                  </div>
+                  <div className="text-blue-400 font-bold">2,180 pts</div>
+                </div>
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-xl">🥉</div>
+                    <div>
+                      <div className="text-slate-300 font-medium">You</div>
+                      <div className="text-slate-500 text-sm">{streak} day streak</div>
+                    </div>
+                  </div>
+                  <div className="text-blue-400 font-bold">{pointsToday * 7} pts</div>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-xl">4️⃣</div>
+                    <div>
+                      <div className="text-slate-300 font-medium">Maya Patel</div>
+                      <div className="text-slate-500 text-sm">8 day streak</div>
+                    </div>
+                  </div>
+                  <div className="text-blue-400 font-bold">1,920 pts</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 };
