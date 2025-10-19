@@ -1159,9 +1159,9 @@ const analyzeJournal = async () => {
               </button>
               <button 
                 onClick={handleSaveJournal} 
-                disabled={freeLimitHit || !journalText.trim()}
+                disabled={!journalText.trim()}
                 className={`px-8 py-4 rounded-xl font-bold tracking-widest ${
-                  freeLimitHit || !journalText.trim() 
+                  !journalText.trim() 
                     ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed' 
                     : 'text-blue-100 border-2 border-blue-700 hover:bg-blue-900/30'
                 }`}
