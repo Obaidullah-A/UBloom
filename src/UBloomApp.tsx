@@ -58,6 +58,10 @@ const UBloomApp = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
 
+  // Speech-to-text
+  const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+
   // Goals
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoalText, setNewGoalText] = useState('');
@@ -530,6 +534,59 @@ const analyzeJournal = async () => {
       .then(data => setUserAvatar(data.avatar_url))
       .catch(err => console.log('Avatar load failed:', err));
   }, []);
+
+  const startRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const newRecognition = new SpeechRecognition();
+    
+    newRecognition.continuous = true;
+    newRecognition.interimResults = true;
+    newRecognition.lang = 'en-US';
+    
+    newRecognition.onresult = (event: any) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setJournalText(prev => prev + (prev ? ' ' : '') + finalTranscript);
+      }
+    };
+    
+    newRecognition.onend = () => {
+      if (isRecording) {
+        startRecognition();
+      }
+    };
+    
+    newRecognition.onerror = (event: any) => {
+      if (event.error !== 'no-speech' && isRecording) {
+        startRecognition();
+      }
+    };
+    
+    setRecognition(newRecognition);
+    newRecognition.start();
+  };
+
+  const toggleRecording = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      showToastMessage('Speech recognition not supported in this browser', 'error');
+      return;
+    }
+    
+    if (isRecording) {
+      setIsRecording(false);
+      if (recognition) {
+        recognition.stop();
+      }
+    } else {
+      setIsRecording(true);
+      startRecognition();
+    }
+  };
 
   const handleAvatarSelect = async (avatarUrl: string) => {
     try {
@@ -1042,12 +1099,30 @@ const analyzeJournal = async () => {
                 </div>
               </div>
             </div>
-            <textarea
-              value={journalText}
-              onChange={(e) => setJournalText(e.target.value)}
-              placeholder="Express your thoughts..."
-              className="w-full h-96 p-6 bg-slate-900/50 border border-blue-800/30 rounded-2xl resize-none focus:outline-none focus:border-blue-500 text-slate-300 mb-6"
-            />
+            <div className="relative mb-6">
+              <textarea
+                value={journalText}
+                onChange={(e) => setJournalText(e.target.value)}
+                placeholder="Express your thoughts..."
+                className="w-full h-96 p-6 bg-slate-900/50 border border-blue-800/30 rounded-2xl resize-none focus:outline-none focus:border-blue-500 text-slate-300"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleRecording();
+                }}
+                className={`absolute bottom-4 right-4 p-3 rounded-full transition-all z-10 cursor-pointer ${
+                  isRecording 
+                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                    : 'bg-blue-700 hover:bg-blue-600 text-blue-100'
+                }`}
+                title={isRecording ? 'Stop recording' : 'Start voice recording'}
+              >
+                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+            </div>
             
             {/* Character count */}
             <div className="flex justify-between items-center mb-4">
