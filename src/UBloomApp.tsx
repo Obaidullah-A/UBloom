@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Home, BookOpen, Target, User, Users, Coins, Flame, Plus, X, Check,
   Sparkles, Brain, Zap, Menu, Lock, Gift, Ticket, ShieldCheck, Crown
+  Sparkles, Brain, Zap, Menu, Lock, Gift, Ticket, ShieldCheck, Crown,  Mic,
 } from 'lucide-react';
 
 /**
@@ -827,6 +828,21 @@ const analyzeJournal = async () => {
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
+              {/* NEW: S-T-T Button */}
+              <button
+                onClick={startSpeechToText}
+                disabled={isListening}
+                className={`px-8 py-4 rounded-xl font-bold border-2 transition-all tracking-widest flex items-center justify-center gap-2 ${
+                  isListening 
+                    ? 'bg-blue-800/50 text-blue-300 border-blue-700 animate-pulse cursor-not-allowed'
+                    : 'border-blue-700 text-blue-100 hover:bg-blue-900/30'
+                }`}
+              >
+                <Mic className="w-5 h-5" />
+                {isListening ? 'LISTENING...' : 'VOICE INPUT'}
+              </button>
+              
+              {/* ANALYZE Button (Moved to center/right for spacing) */}
               <button 
                 onClick={analyzeJournal}
                 disabled={!journalText.trim() || aiLoading}
