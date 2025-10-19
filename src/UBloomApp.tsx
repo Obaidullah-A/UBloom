@@ -103,6 +103,10 @@ const UBloomApp = () => {
   // Game history
   const [gameHistory, setGameHistory] = useState<{id: number, game: string, score: number, date: string, duration: number}[]>([]);
   
+  // AI Mood Snapshot
+  const [moodSnapshot, setMoodSnapshot] = useState<{state: string, emotion: string, advice: string, color: string} | null>(null);
+  const [moodLoading, setMoodLoading] = useState(false);
+  
   // Progress tracking
   const [emotionHistory, setEmotionHistory] = useState<{date: string, emotion: string, score: number}[]>([
     {date: '2024-01-01', emotion: 'Happy', score: 8},
@@ -609,6 +613,81 @@ const analyzeJournal = async () => {
     }
   };
 
+  // Generate AI Mood Snapshot
+  const generateMoodSnapshot = async () => {
+    setMoodLoading(true);
+    
+    try {
+      // Analyze current state
+      const today = todayKey();
+      const todayJournal = journalHistory.find(j => j.date === today);
+      const activeGoalsCount = goals.filter(g => g.status === 'active').length;
+      const completedGoalsToday = goals.filter(g => g.status === 'done' && g.completedAt?.startsWith(today)).length;
+      const currentHour = new Date().getHours();
+      
+      // Simple AI logic for mood analysis
+      let primaryEmotion = 'Neutral';
+      let emotionalState = 'BALANCED';
+      let advice = 'Keep maintaining your current routine.';
+      let color = '#60a5fa';
+      
+      // Analyze journal sentiment (basic keyword detection)
+      if (todayJournal) {
+        const text = todayJournal.text.toLowerCase();
+        const positiveWords = ['happy', 'good', 'great', 'amazing', 'wonderful', 'excited', 'grateful', 'love', 'joy'];
+        const negativeWords = ['sad', 'bad', 'terrible', 'awful', 'stressed', 'anxious', 'worried', 'tired', 'frustrated'];
+        
+        const positiveCount = positiveWords.filter(word => text.includes(word)).length;
+        const negativeCount = negativeWords.filter(word => text.includes(word)).length;
+        
+        if (positiveCount > negativeCount) {
+          primaryEmotion = 'Positive';
+          emotionalState = 'ENERGIZED';
+          advice = 'You\'re in a great headspace! Consider tackling a challenging goal.';
+          color = '#10b981';
+        } else if (negativeCount > positiveCount) {
+          primaryEmotion = 'Stressed';
+          emotionalState = 'NEEDS REST';
+          advice = 'Take a 5-minute break and try some deep breathing.';
+          color = '#f59e0b';
+        }
+      }
+      
+      // Factor in goal completion
+      if (completedGoalsToday >= 2) {
+        primaryEmotion = 'Motivated';
+        emotionalState = 'PRODUCTIVE';
+        advice = 'Excellent progress today! You\'re building great momentum.';
+        color = '#8b5cf6';
+      } else if (activeGoalsCount > 5 && completedGoalsToday === 0) {
+        primaryEmotion = 'Overwhelmed';
+        emotionalState = 'NEEDS FOCUS';
+        advice = 'Try focusing on just one goal at a time to avoid burnout.';
+        color = '#ef4444';
+      }
+      
+      // Time-based adjustments
+      if (currentHour < 10 && pointsToday === 0) {
+        advice = 'Good morning! Start with a quick journal entry to set your day.';
+      } else if (currentHour > 20 && pointsToday < 20) {
+        emotionalState = 'WINDING DOWN';
+        advice = 'Evening reflection time - consider what went well today.';
+        color = '#6366f1';
+      }
+      
+      setMoodSnapshot({
+        state: emotionalState,
+        emotion: primaryEmotion,
+        advice,
+        color
+      });
+    } catch (error) {
+      console.error('Mood analysis failed:', error);
+    } finally {
+      setMoodLoading(false);
+    }
+  };
+
   // Auto-save progress periodically
   useEffect(() => {
     const interval = setInterval(saveProgress, 30000); // Save every 30 seconds
@@ -900,41 +979,43 @@ const analyzeJournal = async () => {
               <div><div className="text-blue-100 font-bold text-lg">{emotionHistory.length}</div><div className="text-slate-500 text-xs">Entries</div></div>
             </div>
 
-            {/* Emotion Graph */}
+
+
+            {/* AI Mood Snapshot */}
             <div className="mb-6">
-              <h4 className="text-blue-100 font-semibold text-sm mb-3">Emotion Trend (7 days)</h4>
-              <div className="flex items-end justify-between h-16 bg-slate-900/30 rounded-lg p-2">
-                {emotionHistory.slice(-7).map((entry, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <div 
-                      className="w-3 bg-blue-500 rounded-t" 
-                      style={{height: `${(entry.score/10)*100}%`}}
-                      title={`${entry.emotion}: ${entry.score}/10`}
-                    />
-                    <div className="text-xs text-slate-500 mt-1">{entry.date.slice(-2)}</div>
-                  </div>
-                ))}
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-blue-100 font-semibold text-sm">AI Mood Snapshot</h4>
+                <button 
+                  onClick={generateMoodSnapshot}
+                  disabled={moodLoading}
+                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                >
+                  {moodLoading ? 'Analyzing...' : 'Refresh'}
+                </button>
               </div>
-              
-              {/* AI Mood Prediction */}
-              {(() => {
-                const avgScore = emotionHistory.slice(-7).reduce((sum, e) => sum + e.score, 0) / 7;
-                const trend = emotionHistory.slice(-3).reduce((sum, e) => sum + e.score, 0) / 3;
-                const prediction = trend < avgScore - 1 ? 'low' : trend > avgScore + 1 ? 'high' : 'stable';
-                
-                if (prediction === 'low') {
-                  return (
-                    <div className="mt-3 p-3 rounded-lg bg-amber-900/20 border border-amber-700/30">
-                      <div className="flex items-center gap-2 text-amber-200 text-xs">
-                        <span>🔮</span>
-                        <span className="font-medium">AI Prediction:</span>
-                        <span>You might feel low tomorrow. Consider scheduling self-care.</span>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
+              {moodSnapshot ? (
+                <div className="bg-slate-900/30 rounded-xl p-4 border border-blue-800/20">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div 
+                      className="w-4 h-4 rounded-full" 
+                      style={{backgroundColor: moodSnapshot.color}}
+                    />
+                    <span className="text-blue-100 font-semibold text-sm">{moodSnapshot.state}</span>
+                  </div>
+                  <p className="text-slate-300 text-xs mb-2">{moodSnapshot.emotion}</p>
+                  <p className="text-slate-400 text-xs">{moodSnapshot.advice}</p>
+                </div>
+              ) : (
+                <div className="bg-slate-900/30 rounded-xl p-4 border border-blue-800/20 text-center">
+                  <button 
+                    onClick={generateMoodSnapshot}
+                    disabled={moodLoading}
+                    className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50"
+                  >
+                    {moodLoading ? 'Analyzing mood...' : 'Get AI Mood Analysis'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Growth Categories */}
@@ -1373,7 +1454,6 @@ const analyzeJournal = async () => {
               {history.map(goal => (
                 <div key={goal.id} className={`p-4 rounded-xl border ${goal.status==='done'?'bg-blue-900/20 border-blue-800/50':'bg-slate-900/30 border-slate-800'} flex items-center gap-3`}>
                   <span className={`flex-1 ${goal.status==='done'?'line-through text-slate-500':'text-slate-300'}`}>{goal.text}</span>
-                  {goal.status==='done' && <span className="text-xs text-blue-400 font-bold">+20</span>}
                   {goal.status==='done' ? (
                     <button onClick={() => deleteGoal(goal.id)} className="px-4 py-2 rounded-md border border-red-700 text-red-300 text-sm hover:bg-red-900/30 min-w-[80px]">Delete</button>
                   ) : (
