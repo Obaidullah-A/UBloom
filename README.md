@@ -1,8 +1,8 @@
-# 🌸 UBloom: AI-Powered Goal & Wellness Companion (MVP)
+# UBloom: AI-Powered Goal & Wellness Companion (MVP)
 
 UBloom is a minimum viable product (MVP) demonstrating a goal-based mental health application. It connects user journaling with AI-powered reflection and gamification (pet status and points) to encourage positive habits and growth.
 
-## ✨ Core MVP Features
+## Core MVP Features
 
 The primary loop of the MVP validates the core value proposition: **Journaling $\leftrightarrow$ AI Reflection $\leftrightarrow$ Goal Action $\leftrightarrow$ Pet Reward.**
 
@@ -16,7 +16,7 @@ The primary loop of the MVP validates the core value proposition: **Journaling $
 
 ***
 
-## 🛠️ Project Setup Instructions
+## Project Setup Instructions
 
 This project requires **two separate servers** running concurrently: a **Python Backend** (for the AI) and a **React Frontend** (for the UI).
 
@@ -75,16 +75,16 @@ This project requires **two separate servers** running concurrently: a **Python 
 
 ***
 
-## 🚀 How to Use the MVP
+## How to Use the MVP
 
-1.  **Journal:** Navigate to the **"Journal 📝"** tab. Write an entry and click **"Get Insight"** (or **"ANALYZE"**).
-2.  **Action:** The AI reflection card appears. Click **"Set as Goal ✅"** on the generated Growth Path (mini-goal).
-3.  **Goals:** Navigate to the **"Goals 🎯"** tab and find your new mini-goal. Click **"Done ✅"** (or **"Failed 😔"**).
-4.  **Reward:** Navigate to the **"Home 🏠"** tab. Your **Growth Points** will increase, and your **Pet Status** will change to "Happy," validating the core gamification loop.
+1.  **Journal:** Navigate to the **"Journal"** tab. Write an entry and click **"Get Insight"** (or **"ANALYZE"**).
+2.  **Action:** The AI reflection card appears. Click **"Set as Goal"** on the generated Growth Path (mini-goal).
+3.  **Goals:** Navigate to the **"Goals"** tab and find your new mini-goal. Click **"Done"** (or **"Failed"**).
+4.  **Reward:** Navigate to the **"Home"** tab. Your **Growth Points** will increase, and your **Pet Status** will change to "Happy," validating the core gamification loop.
 
 ***
 
-## 💻 Tech Stack
+## Tech Stack
 
 * **Frontend:** React (JavaScript, JSX), React Router.
 * **Backend:** Python 3, Flask, `python-dotenv`.
